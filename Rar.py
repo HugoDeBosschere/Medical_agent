@@ -5,7 +5,6 @@ from ollama import chat
 from deepeval.test_case import LLMTestCase
 from deepeval.metrics import AnswerRelevancyMetric, GEval
 from deepeval import evaluate
-from deepeval.models import OllamaModel
 
 # Configuration Ollama
 OLLAMA_URL = "http://localhost:11434/"
@@ -47,21 +46,13 @@ def call_ollama_generate(prompt: str, model: str = MODEL) -> str:
 if __name__ == "__main__":
     prompt = "Qu'est-ce que l'intelligence artificielle ?"
     reponse = call_ollama_generate(prompt)
-    #print(f"Prompt: {prompt}")
-    #print(f"Réponse: {reponse}")
+    print(f"Prompt: {prompt}")
+    print(f"Réponse: {reponse}")
 
     rar_augment = "\nRephrase and expand the question, and respond."
     promptRar = prompt + rar_augment
     reponse_Rar = call_ollama_generate(promptRar)
-    #print(f"\n\nPrompt: {promptRar}")
-    #print(f"Réponse: {reponse_Rar}")
+    print(f"\n\nPrompt: {promptRar}")
+    print(f"Réponse: {reponse_Rar}")
 
-    test = LLMTestCase(input=prompt, actual_output=reponse)
-    judge = OllamaModel(model="qwen3:0.6b")
-    relevancy_metric = AnswerRelevancyMetric(threshold=0.5, model=judge)
-    print(f"\n--- Test ---")
-
-    relevancy_metric.measure(test)
-    print(f"[AnswerRelevancy] Score : {relevancy_metric.score:.2f}")
-    print(f"[AnswerRelevancy] Raison : {relevancy_metric.reason}")
-
+    LLMTestCase(input=prompt, actual_output=reponse)
