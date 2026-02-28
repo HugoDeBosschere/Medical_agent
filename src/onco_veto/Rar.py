@@ -2,7 +2,7 @@ import requests
 from typing import List
 import pandas as pd
 from ollama import chat
-from deepeval.test_case import LLMTestCase
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import AnswerRelevancyMetric, GEval
 from deepeval import evaluate
 from deepeval.models import OllamaModel
@@ -50,18 +50,41 @@ if __name__ == "__main__":
     #print(f"Prompt: {prompt}")
     #print(f"Réponse: {reponse}")
 
-    rar_augment = "\nRephrase and expand the question, and respond."
+    '''rar_augment = "\nRephrase and expand the question, and respond."
     promptRar = prompt + rar_augment
-    reponse_Rar = call_ollama_generate(promptRar)
+    reponse_Rar = call_ollama_generate(promptRar)'''
     #print(f"\n\nPrompt: {promptRar}")
     #print(f"Réponse: {reponse_Rar}")
 
     test = LLMTestCase(input=prompt, actual_output=reponse)
+                       #,retrieval_context=[donnees_patient])
     judge = OllamaModel(model="qwen3:0.6b")
     relevancy_metric = AnswerRelevancyMetric(threshold=0.5, model=judge)
     print(f"\n--- Test ---")
 
-    relevancy_metric.measure(test)
+    '''relevancy_metric.measure(test)
     print(f"[AnswerRelevancy] Score : {relevancy_metric.score:.2f}")
     print(f"[AnswerRelevancy] Raison : {relevancy_metric.reason}")
+    print("\n", LLMTestCase.ACTUAL_OUTPUT)'''
 
+    focus_pulmonaire = GEval(
+        name="Focus Pulmonaire",
+        criteria="""
+        Évalue si le rapport respecte TOUS ces critères :
+        1. Le rapport parle UNIQUEMENT des poumons et du système pulmonaire
+        2. Le rapport N'INCLUT PAS d'informations sur d'autres organes (cerveau, coeur, etc.)
+        3. Les informations pulmonaires présentes dans les données sources sont bien reportées
+        4. Le rapport est cohérent et médicallement structuré
+        """,
+        evaluation_params=[
+            LLMTestCaseParams.INPUT,
+            LLMTestCaseParams.ACTUAL_OUTPUT,
+        ],
+        threshold=0.5,
+        model=judge
+    )
+
+    focus_pulmonaire.measure(test)
+    print(f"Score  : {focus_pulmonaire.score:.2f}")
+    print(f"Raison : {focus_pulmonaire.reason}")  # ← toujours accessible même sans include_reason
+    
