@@ -70,22 +70,12 @@ def evaluate_response(test_case: LLMTestCase, threshold: float, judge: str) -> b
     # 3. Return the boolean for your agentic workflow branch
     return extraction_metric.is_successful()
 
-# Exemple d'utilisation
-if __name__ == "__main__":
-    prompt = "Qu'est-ce que l'intelligence artificielle ?"
-    reponse = call_ollama_generate(prompt)
-    #print(f"Prompt: {prompt}")
-    #print(f"Réponse: {reponse}")
 
-    '''rar_augment = "\nRephrase and expand the question, and respond."
-    promptRar = prompt + rar_augment
-    reponse_Rar = call_ollama_generate(promptRar)'''
-    #print(f"\n\nPrompt: {promptRar}")
-    #print(f"Réponse: {reponse_Rar}")
-
+def evaluate_prompt(prompt, reponse):
+    
     test = LLMTestCase(input=prompt, actual_output=reponse)
-                       #,retrieval_context=[donnees_patient])
-    judge = OllamaModel(model="qwen3:0.6b")
+
+    judge = OllamaModel(model=MODEL)
     relevancy_metric = AnswerRelevancyMetric(threshold=0.5, model=judge)
     print(f"\n--- Test ---")
 
@@ -115,3 +105,19 @@ if __name__ == "__main__":
     print(f"Score  : {focus_pulmonaire.score:.2f}")
     print(f"Raison : {focus_pulmonaire.reason}")  # ← toujours accessible même sans include_reason
     
+
+
+# Exemple d'utilisation
+if __name__ == "__main__":
+    prompt = "Qu'est-ce que l'intelligence artificielle ?"
+    reponse = call_ollama_generate(prompt)
+    #print(f"Prompt: {prompt}")
+    #print(f"Réponse: {reponse}")
+
+    '''rar_augment = "\nRephrase and expand the question, and respond."
+    promptRar = prompt + rar_augment
+    reponse_Rar = call_ollama_generate(promptRar)'''
+    #print(f"\n\nPrompt: {promptRar}")
+    #print(f"Réponse: {reponse_Rar}")
+
+    evaluate_prompt(prompt, reponse)
