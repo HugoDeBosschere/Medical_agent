@@ -21,14 +21,6 @@ const LUNG_PATH_RIGHT =
 const GAME_TEXT: Record<ReportLanguage, string> = {
   en: "While you wait — Kill the tumors!",
   fr: "En attendant — Éliminez les tumeurs !",
-  es: "Mientras esperas — ¡Elimina los tumores!",
-  de: "Während Sie warten — Tumore beseitigen!",
-  it: "Nell'attesa — Elimina i tumori!",
-  pt: "Enquanto espera — Elimine os tumores!",
-  ar: "أثناء الانتظار — اقضِ على الأورام!",
-  zh: "等待期间——消灭肿瘤！",
-  ja: "お待ちの間に — 腫瘍を退治！",
-  ru: "Пока ждёте — уничтожьте опухоли!",
 };
 
 interface TumorGameProps {

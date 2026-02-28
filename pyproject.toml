@@ -7,19 +7,18 @@ requires-python = ">=3.13"
 dependencies = [
     "datetime>=6.0",
     "deepeval>=3.8.8",
+    "fastapi>=0.115.0",
     "msoffcrypto-tool>=6.0.0",
     "ollama>=0.6.1",
     "openpyxl>=3.1.5",
     "pandas>=3.0.1",
     "dcm-seg-nodules",
-    "deepeval>=3.8.8",
     "ipykernel>=7.2.0",
     "ipywidgets>=8.1.8",
     "matplotlib>=3.10.8",
-    "ollama>=0.6.1",
-    "pandas>=3.0.1",
     "scipy>=1.17.1",
     "simpleitk>=2.5.3",
+    "uvicorn[standard]>=0.30.0",
 ]
 
 [tool.uv.sources]

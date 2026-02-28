@@ -9,14 +9,6 @@ const PATIENT_ID_REGEX = /^[A-Z0-9]{8}$/;
 const UI_TRANSLATIONS: Record<ReportLanguage, { label: string; placeholder: string; chars: string; error: string; invalidFormat: string; button: string }> = {
   en: { label: "Patient Identifier", placeholder: "e.g. A1B2C3D4", chars: "characters", error: "Must be exactly 8 alphanumeric characters (A-Z, 0-9)", invalidFormat: "Invalid format", button: "Generate Report" },
   fr: { label: "Identifiant Patient", placeholder: "ex. A1B2C3D4", chars: "caractères", error: "Doit contenir exactement 8 caractères alphanumériques (A-Z, 0-9)", invalidFormat: "Format invalide", button: "Générer le rapport" },
-  es: { label: "Identificador del Paciente", placeholder: "ej. A1B2C3D4", chars: "caracteres", error: "Debe tener exactamente 8 caracteres alfanuméricos (A-Z, 0-9)", invalidFormat: "Formato inválido", button: "Generar informe" },
-  de: { label: "Patienten-ID", placeholder: "z.B. A1B2C3D4", chars: "Zeichen", error: "Genau 8 alphanumerische Zeichen erforderlich (A-Z, 0-9)", invalidFormat: "Ungültiges Format", button: "Bericht erstellen" },
-  it: { label: "Identificativo Paziente", placeholder: "es. A1B2C3D4", chars: "caratteri", error: "Deve contenere esattamente 8 caratteri alfanumerici (A-Z, 0-9)", invalidFormat: "Formato non valido", button: "Genera referto" },
-  pt: { label: "Identificador do Paciente", placeholder: "ex. A1B2C3D4", chars: "caracteres", error: "Deve conter exatamente 8 caracteres alfanuméricos (A-Z, 0-9)", invalidFormat: "Formato inválido", button: "Gerar relatório" },
-  ar: { label: "معرّف المريض", placeholder: "مثال A1B2C3D4", chars: "أحرف", error: "يجب أن يحتوي على 8 أحرف أبجدية رقمية بالضبط (A-Z, 0-9)", invalidFormat: "تنسيق غير صالح", button: "إنشاء التقرير" },
-  zh: { label: "患者编号", placeholder: "例如 A1B2C3D4", chars: "个字符", error: "必须恰好为8个字母数字字符 (A-Z, 0-9)", invalidFormat: "格式无效", button: "生成报告" },
-  ja: { label: "患者ID", placeholder: "例 A1B2C3D4", chars: "文字", error: "8文字の英数字が必要です (A-Z, 0-9)", invalidFormat: "無効な形式", button: "レポート生成" },
-  ru: { label: "ID Пациента", placeholder: "напр. A1B2C3D4", chars: "символов", error: "Необходимо ровно 8 буквенно-цифровых символов (A-Z, 0-9)", invalidFormat: "Неверный формат", button: "Создать отчёт" },
 };
 
 interface PatientIdInputProps {
