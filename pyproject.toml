@@ -5,6 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "datetime>=6.0",
+    "deepeval>=3.8.8",
+    "msoffcrypto-tool>=6.0.0",
+    "ollama>=0.6.1",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.1",
     "dcm-seg-nodules",
     "deepeval>=3.8.8",
     "ipykernel>=7.2.0",

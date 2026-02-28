@@ -1,2 +1,7 @@
 .venv/
+*key.txt
+data/
+*pycache*
+*Removal.md
+*.xlsx
 /data/
