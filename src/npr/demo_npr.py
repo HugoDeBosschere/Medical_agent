@@ -15,14 +15,24 @@ from npr import load_xlsx, filter_by_pid, process_dataframe, save_xlsx, REPORT_C
 from mistral_call import MISTRAL_DEFAULT_MODEL
 from ollama_call import MODEL as OLLAMA_DEFAULT_MODEL
 
-XLSX_PATH = Path(__file__).resolve().parents[3] / "Liste examen UNBOXED finaliseģe v2 (avec mesures).xlsx"
+XLSX_PATH = Path(__file__).resolve().parents[3] / "ExamensUnboxed.xlsx"
+
+PATH_EXCEL_KEY = Path(__file__).parent / "excel_key.txt"
+try:
+    # Read API key
+    with open(PATH_EXCEL_KEY, "r") as f:
+        excel_key = f.read().strip()
+    print("\nExcel Key file found.")
+except:
+    pass
+XLSX_PASSWORD = excel_key # set the password for the encrypted xlsx here
 DEMO_PID = "0301B7D6"  # first patient in the spreadsheet
 OUTPUT_PATH = Path(__file__).resolve().parent / "demo_clean.xlsx"
 
 
 def main():
     print(f"[demo] Loading {XLSX_PATH.name} ...")
-    df = load_xlsx(str(XLSX_PATH))
+    df = load_xlsx(str(XLSX_PATH), password=XLSX_PASSWORD)
     print(f"[demo] Loaded {len(df)} rows, columns: {list(df.columns)}\n")
 
     # Filter to a single patient so the demo stays fast

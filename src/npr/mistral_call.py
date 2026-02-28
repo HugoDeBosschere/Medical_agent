@@ -12,7 +12,6 @@ try:
     with open(PATH_API_KEY, "r") as f:
         api_key = f.read().strip()
     print("\nAPI Key file found.")
-    print(api_key)
     os.environ["MISTRAL_API_KEY"] = api_key
 except:
     pass
