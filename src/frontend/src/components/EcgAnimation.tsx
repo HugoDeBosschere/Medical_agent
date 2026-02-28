@@ -3,14 +3,6 @@ import type { ReportLanguage } from "@/lib/mockReport";
 const LOADING_TEXT: Record<ReportLanguage, string> = {
   en: "Generating report…",
   fr: "Génération du rapport…",
-  es: "Generando informe…",
-  de: "Bericht wird erstellt…",
-  it: "Generazione referto…",
-  pt: "Gerando relatório…",
-  ar: "جارٍ إنشاء التقرير…",
-  zh: "正在生成报告…",
-  ja: "レポートを生成中…",
-  ru: "Генерация отчёта…",
 };
 
 interface EcgAnimationProps {
