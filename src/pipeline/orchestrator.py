@@ -63,7 +63,7 @@ async def generate_report(patient_id: str, language: str, mode: str = "radiologi
             raw_response
         )
         parsed.generation_evaluation = eval_result
-        print(f"[pipeline] Judge evaluation result (first 200 chars): {eval_result[:200] if eval_result else 'EMPTY'}")
+        print(f"[pipeline] Judge evaluation FULL result:\n{eval_result}")
     except Exception as e:
         print(f"[pipeline] Judge evaluation failed: {e}")
         parsed.generation_evaluation = ""

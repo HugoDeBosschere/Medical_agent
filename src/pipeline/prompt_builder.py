@@ -36,26 +36,48 @@ REPORT_PROMPT_TEMPLATE = """You are an expert oncology radiologist assistant. Yo
 
 === TNM CLASSIFICATION GUIDELINES ===
 Apply the following precise TNM definitions for staging:
+Primary Tumor (T)
+TX    Primary tumor cannot be assessed, or tumor proven by the presence of malignant cells in broncho-pulmonary secretions (sputum or washings) but not visualized by imaging or bronchoscopy.
+T0    No evidence of primary tumor.
+Tis   Carcinoma in situ.
+T1    Tumor 3 cm or less in greatest dimension, surrounded by lung or visceral pleura, without bronchoscopic evidence of invasion more proximal than the lobar bronchus (i.e., not in the main bronchus).
+T1a(mi): Minimally invasive adenocarcinoma.
+T1a:  Tumor 1 cm or less in greatest dimension.
+T1b:  Tumor more than 1 cm but not more than 2 cm in greatest dimension.
+T1c:  Tumor more than 2 cm but not more than 3 cm in greatest dimension.
+T2    Tumor more than 3 cm but 5 cm or less in greatest dimension; or tumor with any of the following features:
+   -involves main bronchus regardless of distance to the carina, but without involvement of the carina,
+   -invades visceral pleura,
+   -associated with atelectasis or obstructive pneumonitis that extends to the hilar region (involving part or all of the lung).
+T2a:  Tumor more than 3 cm but not more than 4 cm in greatest dimension.
+T2b:  Tumor more than 4 cm but not more than 5 cm in greatest dimension.
+T3    Tumor more than 5 cm but 7 cm or less in greatest dimension, or associated with separate tumor nodule(s) in the same lobe, or having any of the following invasive features:
+   -invades chest wall (including superior sulcus tumors),
+   -invades phrenic nerve,
+   -invades parietal pleura or pericardium.
+T4    Tumor more than 7 cm or associated with separate tumor nodule(s) in a different ipsilateral lobe, or invades any of the following: mediastinum, heart, great vessels, trachea, diaphragm, recurrent laryngeal nerve, esophagus, vertebral body, carina.
 
-Primary Tumor (T):
-- Tis: Carcinoma in situ: intraepithelial or invasion of the lamina propria (intramucosal) without extension to the submucosa through the muscularis mucosae.
-- T1: Tumor invades the submucosa but not beyond.
-- T2: Tumor invades the muscularis propria but not beyond.
-- T3: Tumor invades through the muscularis propria into the subserosa (without involvement of the mesothelial lining) and non-peritonealized pericolic or perirectal tissue.
-- T4: Tumor perforates the visceral peritoneum and/or invades adjacent organs.
+Regional Lymph Nodes (N)
+NX    Regional lymph nodes cannot be assessed.
+N0    No regional lymph node metastasis.
+N1    Metastasis in ipsilateral peribronchial and/or ipsilateral hilar lymph nodes, including involvement by direct extension.
+N2    Metastasis in ipsilateral mediastinal and/or subcarinal lymph node(s).
+N3    Metastasis in contralateral mediastinal, contralateral hilar, ipsilateral or contralateral scalene, or supraclavicular lymph node(s).
+ 
+Distant Metastasis (M)
+MX    Unknown.
+M0    No distant metastasis.
+M1    Distant metastasis present:
+M1a:  Separate tumor nodule(s) in a contralateral lobe; tumor with pleural nodules or malignant pleural effusion or malignant pericardial effusion.
+M1b:  Single metastasis in a single metastatic site.
+M1c:  Multiple metastases in a single organ or in multiple organs.
 
-Regional Lymph Nodes (N):
-- Minimum number of nodes examined: 12.
-- [If the examined lymph nodes are negative, but the usually resected number is not reached, classify as pN0].
-- N0: No regional lymph node metastasis.
-- N1: 1 to 3 regional lymph node metastases.
-- N2: 4 or more regional lymph node metastases.
-- Nx: Regional lymph nodes cannot be assessed.
-
-Distant Metastasis (M):
-- M0: No distant metastasis.
-- M1: Distant metastasis (involvement of external iliac or common iliac nodes is considered M1).
-- Mx: Metastatic status unknown.
+The stages are grouped as follows: 
+Stage 0 = Tis N0 M0; 
+Stage I = T1–T2a N0 M0; 
+Stage II = T2b–T3 N0 or T1–T2 N1 or T1 N2a; 
+Stage III = any N2b or N3 or T4 involvement without metastasis; 
+Stage IV = any M1 (a, b, or c) situation.
 
 === INSTRUCTIONS ===
 Generate a structured oncology follow-up report. Cross-reference findings from both sources. If segmentation data is unavailable, base the report solely on clinical reports.

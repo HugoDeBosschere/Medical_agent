@@ -8,6 +8,9 @@ Usage:
     python main.py
 """
 
+import os
+import platform
+import signal
 import subprocess
 import sys
 import time
@@ -25,6 +28,14 @@ FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
 def main():
     procs: list[subprocess.Popen] = []
 
+    # On Unix, we start processes in their own process group.
+    # This ensures child processes (like uvicorn workers) are grouped 
+    # and can be killed together, while also protecting them from the 
+    # initial Ctrl+C (so our Python script handles cleanup cleanly).
+    popen_kwargs = {}
+    if platform.system() != "Windows":
+        popen_kwargs["preexec_fn"] = os.setsid
+
     try:
         # --- 1. Start FastAPI backend ---
         print(f"[backend]  Starting uvicorn on port {BACKEND_PORT} ...")
@@ -37,6 +48,7 @@ def main():
                 "--reload",
             ],
             cwd=str(ROOT),
+            **popen_kwargs
         )
         procs.append(backend)
 
@@ -46,6 +58,7 @@ def main():
             ["npm", "run", "dev"],
             cwd=str(FRONTEND_DIR),
             shell=True,  # needed on Windows for npm
+            **popen_kwargs
         )
         procs.append(frontend)
 
@@ -69,12 +82,26 @@ def main():
     finally:
         for p in procs:
             if p.poll() is None:
-                p.terminate()
+                try:
+                    if platform.system() == "Windows":
+                        # /F forces termination, /T kills child processes (process tree)
+                        subprocess.call(
+                            ["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                    else:
+                        # Kill the entire process group
+                        os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+                except Exception as e:
+                    print(f"[stop]     Failed to kill process tree for {p.pid}: {e}")
+                    
+        # Give them a brief moment to exit cleanly
         for p in procs:
             try:
                 p.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                p.kill()
+                pass # Already tried our best to force-kill the tree
         print("[done]     All servers stopped.")
 
 

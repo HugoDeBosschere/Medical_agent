@@ -525,24 +525,118 @@ function scoreToColor(score: number): [number, number, number] {
   ];
 }
 
-/** Parse the judge free-form text and render a colored score badge section. */
-function addGenerationScoreBadge(
-  doc: jsPDF,
-  evaluationText: string,
-  y: number,
-  lang: ReportLanguage
-): number {
-  if (!evaluationText) return y;
+/** Recursively search a JSON object for a numeric field by name. */
+function findJsonValue(obj: unknown, keys: string[]): unknown {
+  if (!obj || typeof obj !== "object") return undefined;
+  const record = obj as Record<string, unknown>;
+  for (const key of keys) {
+    if (key in record) return record[key];
+  }
+  // Search one level deeper
+  for (const val of Object.values(record)) {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      const found = findJsonValue(val, keys);
+      if (found !== undefined) return found;
+    }
+  }
+  return undefined;
+}
 
-  // Debug: log what we received from the backend
-  console.log("[LLM-as-Judge] generation_evaluation received:", evaluationText.substring(0, 300));
+/** Collect all error strings from a JSON evaluation object (any nesting depth). */
+function collectJsonErrors(obj: unknown): string[] {
+  const errors: string[] = [];
+  if (!obj || typeof obj !== "object") return errors;
+  const record = obj as Record<string, unknown>;
+  if (Array.isArray(record.errors)) {
+    for (const e of record.errors) {
+      if (typeof e === "string" && e.trim()) errors.push(e.trim());
+    }
+  }
+  for (const val of Object.values(record)) {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      errors.push(...collectJsonErrors(val));
+    }
+  }
+  return errors;
+}
 
-  // Extract global score (0-100) — handle many LLM output formats:
-  // "Global Score: 75", "**Global Score:** 75/100", "Score global : 75",
-  // "global score (0–100): 75", "Score: 75/100", or just a bare "75/100" near "score"
+/** Build a short summary of the judge evaluation for display. */
+function buildJudgeSummary(obj: Record<string, unknown>): string {
+  // Flatten to the evaluation object if wrapped
+  const eval_obj = (obj.evaluation && typeof obj.evaluation === "object" ? obj.evaluation : obj) as Record<string, unknown>;
+
+  // Count section statuses
+  const statuses: Record<string, string[]> = { Correct: [], Incomplete: [], Incorrect: [], "Not valid": [] };
+  for (const [key, val] of Object.entries(eval_obj)) {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      const section = val as Record<string, unknown>;
+      const status = String(section.status ?? section.evaluation ?? "").trim();
+      const label = key.replace(/_/g, " ");
+      if (status in statuses) {
+        statuses[status].push(label);
+      }
+    }
+  }
+
+  const parts: string[] = [];
+  if (statuses["Incorrect"].length > 0) {
+    parts.push(`Incorrect: ${statuses["Incorrect"].join(", ")}`);
+  }
+  if (statuses["Not valid"].length > 0) {
+    parts.push(`Not valid: ${statuses["Not valid"].join(", ")}`);
+  }
+  if (statuses["Incomplete"].length > 0) {
+    parts.push(`Incomplete: ${statuses["Incomplete"].join(", ")}`);
+  }
+  if (parts.length === 0 && statuses["Correct"].length > 0) {
+    parts.push("All sections correct");
+  }
+
+  // Add top error if we have room
+  const errors = collectJsonErrors(eval_obj);
+  if (errors.length > 0 && parts.join(". ").length < 100) {
+    parts.push(errors[0]);
+  }
+
+  let summary = parts.join(". ");
+  if (summary.length > 200) {
+    summary = summary.substring(0, 197) + "...";
+  }
+  return summary;
+}
+
+/** Extract score, verdict, and explanation from the judge output (JSON or free-form text). */
+function parseJudgeEvaluation(evaluationText: string): {
+  score: number; verdict: string; explanation: string;
+} | null {
+  // Try JSON parsing first — the LLM returns structured JSON
+  try {
+    const trimmed = evaluationText.trim();
+    const jsonStr = trimmed.startsWith("{") ? trimmed : trimmed.match(/\{[\s\S]*\}/)?.[0];
+    if (jsonStr) {
+      const obj = JSON.parse(jsonStr);
+
+      // Recursively find score — handles both obj.global_score and obj.evaluation.global_score
+      const rawScore = findJsonValue(obj, ["global_score", "globalScore", "score"]);
+      const numScore = typeof rawScore === "number" ? rawScore
+        : typeof rawScore === "string" ? parseInt(rawScore, 10)
+        : null;
+
+      if (numScore !== null && !isNaN(numScore) && numScore >= 0 && numScore <= 100) {
+        // Recursively find verdict
+        const rawVerdict = findJsonValue(obj, ["final_verdict", "finalVerdict", "verdict"]);
+        const verdict = String(rawVerdict ?? "").toUpperCase().includes("PASS") ? "PASS"
+          : String(rawVerdict ?? "").toUpperCase().includes("FAIL") ? "FAIL" : "";
+
+        const explanation = buildJudgeSummary(obj);
+        return { score: numScore, verdict, explanation };
+      }
+    }
+  } catch { /* Not valid JSON, fall through */ }
+
+  // Fallback: regex-based extraction for free-form text
   const scorePatterns = [
     /(?:global\s*score|score\s*global)[^0-9]*(\d{1,3})/i,
-    /(?:\*\*)?(?:global\s*score|score\s*global)(?:\*\*)?[^0-9]*(\d{1,3})/i,
     /score[^0-9]*(\d{1,3})\s*(?:\/\s*100|%)/i,
     /(\d{1,3})\s*\/\s*100/,
   ];
@@ -551,44 +645,47 @@ function addGenerationScoreBadge(
     const m = evaluationText.match(pat);
     if (m) {
       const val = parseInt(m[1], 10);
-      if (val >= 0 && val <= 100) {
-        score = val;
-        break;
-      }
+      if (val >= 0 && val <= 100) { score = val; break; }
     }
   }
-  if (score === null) {
-    console.log("[LLM-as-Judge] Could not extract score from evaluation text");
-    return y;
-  }
+  if (score === null) return null;
 
-  // Extract verdict — handle "PASS", "FAIL", "**PASS**", "Verdict: PASS", etc.
   const verdictMatch = evaluationText.match(/(?:final\s*)?verdict[^A-Z]*(PASS|FAIL)/i)
     ?? evaluationText.match(/\b(PASS|FAIL)\b/);
   const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : "";
 
-  // Extract a short explanation — look for "errors" or take a brief summary
   let explanation = "";
-  // Try to grab a line after "list of errors" or similar
-  const errorsMatch = evaluationText.match(
-    /(?:errors?|issues?|findings?)[:\s]*\n?[-•*]?\s*(.+?)(?:\n|$)/i
-  );
-  if (errorsMatch) {
-    explanation = errorsMatch[1].trim();
-  }
-  // Fallback: take the last sentence-like chunk before the score line
-  if (!explanation) {
-    const lines = evaluationText.split("\n").filter((l) => l.trim());
-    for (const line of lines) {
-      if (line.length > 10 && !line.match(/score/i) && !line.match(/verdict/i)) {
-        explanation = line.trim();
-      }
+  const lines = evaluationText.split("\n").filter((l) => l.trim());
+  for (const line of lines) {
+    if (line.length > 10 && !line.match(/score/i) && !line.match(/verdict/i)) {
+      explanation = line.trim();
     }
   }
-  // Truncate to ~120 chars
-  if (explanation.length > 120) {
-    explanation = explanation.substring(0, 117) + "...";
+  if (explanation.length > 200) {
+    explanation = explanation.substring(0, 197) + "...";
   }
+
+  return { score, verdict, explanation };
+}
+
+/** Parse the judge output and render a colored score badge section. */
+function addGenerationScoreBadge(
+  doc: jsPDF,
+  evaluationText: string,
+  y: number,
+  lang: ReportLanguage
+): number {
+  if (!evaluationText) return y;
+
+  console.log("[LLM-as-Judge] generation_evaluation received:", evaluationText.substring(0, 300));
+
+  const parsed = parseJudgeEvaluation(evaluationText);
+  if (!parsed) {
+    console.log("[LLM-as-Judge] Could not extract score from evaluation text");
+    return y;
+  }
+
+  const { score, verdict, explanation } = parsed;
 
   // Render section
   y += 4;
