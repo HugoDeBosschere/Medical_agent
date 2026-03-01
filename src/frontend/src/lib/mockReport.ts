@@ -1,18 +1,11 @@
 import jsPDF from "jspdf";
+import type { ReportData } from "./api";
 
-export type ReportLanguage = "en" | "fr" | "es" | "de" | "it" | "pt" | "ar" | "zh" | "ja" | "ru";
+export type ReportLanguage = "en" | "fr";
 
 export const LANGUAGE_LABELS: Record<ReportLanguage, string> = {
   en: "English",
   fr: "Français",
-  es: "Español",
-  de: "Deutsch",
-  it: "Italiano",
-  pt: "Português",
-  ar: "العربية",
-  zh: "中文",
-  ja: "日本語",
-  ru: "Русский",
 };
 
 const translations: Record<ReportLanguage, Record<string, string>> = {
@@ -49,6 +42,19 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     privacy3: "No personal data was shared with unauthorized third parties. Data retention and processing adhere to institutional privacy policies.",
     validWithout: "This report was generated electronically and is valid without signature.",
     noIncidents: "No incidents during the examination.",
+    globalIndication: "GLOBAL INDICATION",
+    lesionSummary: "LESION SUMMARY",
+    evolutionTitle: "EVOLUTION",
+    attentionPoints: "ATTENTION POINTS / DISCORDANCES",
+    finalSynthesis: "FINAL SYNTHESIS",
+    tnmStage: "PROPOSED TNM STAGE",
+    warningsTitle: "WARNINGS",
+    patientTitle: "PATIENT SUMMARY",
+    patientConfidential: "Confidential Patient Document",
+    patientSummarySection: "YOUR RESULTS EXPLAINED",
+    patientDisclaimer: "IMPORTANT NOTICE",
+    patientDisclaimerText:
+      "This summary is provided for informational purposes only. It is based on your medical imaging reports and is not a substitute for a consultation with your doctor. Please discuss these results with your healthcare provider for a complete understanding of your condition and next steps.",
   },
   fr: {
     title: "COMPTE RENDU RADIOLOGIQUE",
@@ -83,283 +89,59 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     privacy3: "Aucune donnée personnelle n'a été partagée avec des tiers non autorisés. La conservation et le traitement des données respectent les politiques de confidentialité de l'établissement.",
     validWithout: "Ce document a été généré électroniquement et est valide sans signature manuscrite.",
     noIncidents: "Aucun incident durant l'examen.",
-  },
-  es: {
-    title: "INFORME RADIOLÓGICO",
-    confidential: "Documento Médico Confidencial",
-    patientInfo: "IDENTIFICACIÓN DEL PACIENTE",
-    patientId: "N° Paciente:",
-    lastName: "Apellido:",
-    firstName: "Nombre:",
-    dob: "Fecha de nacimiento:",
-    examInfo: "DETALLES DEL EXAMEN",
-    examDate: "Fecha del examen:",
-    examType: "Tipo de examen:",
-    areasExplored: "Zonas exploradas:",
-    modalities: "Modalidades:",
-    incidents: "Incidentes:",
-    referringPhysician: "MÉDICO PRESCRIPTOR",
-    physicianName: "Nombre:",
-    physicianContact: "Contacto:",
-    radiologist: "RADIÓLOGO",
-    radiologistName: "Nombre:",
-    radiologistSignature: "Firma digital:",
-    technicalDesc: "DESCRIPCIÓN TÉCNICA",
-    findings: "HALLAZGOS DESCRIPTIVOS",
-    interpretation: "INTERPRETACIÓN Y CONCLUSIÓN",
-    reportDate: "FECHA DEL INFORME",
-    dateOfRedaction: "Fecha de redacción:",
-    imageConservation: "CONSERVACIÓN DE IMÁGENES",
-    conservationText: "Las imágenes médicas se almacenan en PACS en formato DICOM durante un período mínimo de 20 años, conforme a la normativa sanitaria vigente. El acceso está restringido al personal médico autorizado.",
-    privacyTitle: "AVISO DE PRIVACIDAD Y PROTECCIÓN DE DATOS",
-    privacy1: "Este informe ha sido generado en cumplimiento con el Reglamento General de Protección de Datos (RGPD – Reglamento UE 2016/679).",
-    privacy2: "Los datos del paciente han sido tratados exclusivamente con fines de diagnóstico médico.",
-    privacy3: "No se han compartido datos personales con terceros no autorizados.",
-    validWithout: "Este documento fue generado electrónicamente y es válido sin firma manuscrita.",
-    noIncidents: "Sin incidentes durante el examen.",
-  },
-  de: {
-    title: "RADIOLOGISCHER BEFUND",
-    confidential: "Vertrauliches medizinisches Dokument",
-    patientInfo: "PATIENTENDATEN",
-    patientId: "Patienten-ID:",
-    lastName: "Nachname:",
-    firstName: "Vorname:",
-    dob: "Geburtsdatum:",
-    examInfo: "UNTERSUCHUNGSDETAILS",
-    examDate: "Untersuchungsdatum:",
-    examType: "Untersuchungstyp:",
-    areasExplored: "Untersuchte Bereiche:",
-    modalities: "Modalitäten:",
-    incidents: "Zwischenfälle:",
-    referringPhysician: "ÜBERWEISENDER ARZT",
-    physicianName: "Name:",
-    physicianContact: "Kontakt:",
-    radiologist: "RADIOLOGE",
-    radiologistName: "Name:",
-    radiologistSignature: "Digitale Unterschrift:",
-    technicalDesc: "TECHNISCHE BESCHREIBUNG",
-    findings: "BESCHREIBENDER BEFUND",
-    interpretation: "INTERPRETATION UND SCHLUSSFOLGERUNG",
-    reportDate: "BERICHTSDATUM",
-    dateOfRedaction: "Erstellungsdatum:",
-    imageConservation: "BILDARCHIVIERUNG",
-    conservationText: "Medizinische Bilder werden im PACS im DICOM-Format für mindestens 20 Jahre aufbewahrt. Der Zugriff ist auf autorisiertes medizinisches Personal beschränkt.",
-    privacyTitle: "DATENSCHUTZHINWEIS",
-    privacy1: "Dieser Bericht wurde in Übereinstimmung mit der DSGVO (EU-Verordnung 2016/679) erstellt.",
-    privacy2: "Patientendaten wurden ausschließlich zum Zweck der medizinischen Diagnostik verarbeitet.",
-    privacy3: "Es wurden keine personenbezogenen Daten an unbefugte Dritte weitergegeben.",
-    validWithout: "Dieses Dokument wurde elektronisch erstellt und ist ohne handschriftliche Unterschrift gültig.",
-    noIncidents: "Keine Zwischenfälle während der Untersuchung.",
-  },
-  it: {
-    title: "REFERTO RADIOLOGICO",
-    confidential: "Documento Medico Riservato",
-    patientInfo: "DATI DEL PAZIENTE",
-    patientId: "ID Paziente:",
-    lastName: "Cognome:",
-    firstName: "Nome:",
-    dob: "Data di nascita:",
-    examInfo: "DETTAGLI DELL'ESAME",
-    examDate: "Data dell'esame:",
-    examType: "Tipo di esame:",
-    areasExplored: "Zone esplorate:",
-    modalities: "Modalità:",
-    incidents: "Incidenti:",
-    referringPhysician: "MEDICO RICHIEDENTE",
-    physicianName: "Nome:",
-    physicianContact: "Contatto:",
-    radiologist: "RADIOLOGO",
-    radiologistName: "Nome:",
-    radiologistSignature: "Firma digitale:",
-    technicalDesc: "DESCRIZIONE TECNICA",
-    findings: "DESCRIZIONE DEI REPERTI",
-    interpretation: "INTERPRETAZIONE E CONCLUSIONE",
-    reportDate: "DATA DEL REFERTO",
-    dateOfRedaction: "Data di redazione:",
-    imageConservation: "CONSERVAZIONE DELLE IMMAGINI",
-    conservationText: "Le immagini mediche sono conservate nel sistema PACS in formato DICOM per un periodo minimo di 20 anni. L'accesso è riservato al personale medico autorizzato.",
-    privacyTitle: "INFORMATIVA SULLA PRIVACY",
-    privacy1: "Questo referto è stato generato in conformità con il GDPR (Regolamento UE 2016/679).",
-    privacy2: "I dati del paziente sono stati trattati esclusivamente a fini diagnostici.",
-    privacy3: "Nessun dato personale è stato condiviso con terze parti non autorizzate.",
-    validWithout: "Questo documento è stato generato elettronicamente ed è valido senza firma autografa.",
-    noIncidents: "Nessun incidente durante l'esame.",
-  },
-  pt: {
-    title: "RELATÓRIO RADIOLÓGICO",
-    confidential: "Documento Médico Confidencial",
-    patientInfo: "IDENTIFICAÇÃO DO PACIENTE",
-    patientId: "N° Paciente:",
-    lastName: "Sobrenome:",
-    firstName: "Nome:",
-    dob: "Data de nascimento:",
-    examInfo: "DETALHES DO EXAME",
-    examDate: "Data do exame:",
-    examType: "Tipo de exame:",
-    areasExplored: "Áreas exploradas:",
-    modalities: "Modalidades:",
-    incidents: "Incidentes:",
-    referringPhysician: "MÉDICO SOLICITANTE",
-    physicianName: "Nome:",
-    physicianContact: "Contato:",
-    radiologist: "RADIOLOGISTA",
-    radiologistName: "Nome:",
-    radiologistSignature: "Assinatura digital:",
-    technicalDesc: "DESCRIÇÃO TÉCNICA",
-    findings: "ACHADOS DESCRITIVOS",
-    interpretation: "INTERPRETAÇÃO E CONCLUSÃO",
-    reportDate: "DATA DO RELATÓRIO",
-    dateOfRedaction: "Data de redação:",
-    imageConservation: "CONSERVAÇÃO DAS IMAGENS",
-    conservationText: "As imagens médicas são armazenadas no PACS em formato DICOM por um período mínimo de 20 anos. O acesso é restrito ao pessoal médico autorizado.",
-    privacyTitle: "AVISO DE PRIVACIDADE E PROTEÇÃO DE DADOS",
-    privacy1: "Este relatório foi gerado em conformidade com o RGPD (Regulamento UE 2016/679).",
-    privacy2: "Os dados do paciente foram tratados exclusivamente para fins de diagnóstico médico.",
-    privacy3: "Nenhum dado pessoal foi compartilhado com terceiros não autorizados.",
-    validWithout: "Este documento foi gerado eletronicamente e é válido sem assinatura manuscrita.",
-    noIncidents: "Sem incidentes durante o exame.",
-  },
-  ar: {
-    title: "تقرير الأشعة",
-    confidential: "وثيقة طبية سرية",
-    patientInfo: "بيانات المريض",
-    patientId: "رقم المريض:",
-    lastName: "اللقب:",
-    firstName: "الاسم:",
-    dob: "تاريخ الميلاد:",
-    examInfo: "تفاصيل الفحص",
-    examDate: "تاريخ الفحص:",
-    examType: "نوع الفحص:",
-    areasExplored: "المناطق المفحوصة:",
-    modalities: "الطرائق:",
-    incidents: "الحوادث:",
-    referringPhysician: "الطبيب المحيل",
-    physicianName: "الاسم:",
-    physicianContact: "الاتصال:",
-    radiologist: "أخصائي الأشعة",
-    radiologistName: "الاسم:",
-    radiologistSignature: "التوقيع الرقمي:",
-    technicalDesc: "الوصف التقني",
-    findings: "النتائج الوصفية",
-    interpretation: "التفسير والاستنتاج",
-    reportDate: "تاريخ التقرير",
-    dateOfRedaction: "تاريخ التحرير:",
-    imageConservation: "حفظ الصور",
-    conservationText: "يتم تخزين الصور الطبية في نظام PACS بتنسيق DICOM لمدة لا تقل عن 20 عامًا. الوصول مقصور على الموظفين الطبيين المصرح لهم.",
-    privacyTitle: "إشعار الخصوصية وحماية البيانات",
-    privacy1: "تم إنشاء هذا التقرير وفقًا للائحة العامة لحماية البيانات (GDPR – اللائحة الأوروبية 2016/679).",
-    privacy2: "تمت معالجة بيانات المريض فقط لأغراض التشخيص الطبي.",
-    privacy3: "لم تتم مشاركة أي بيانات شخصية مع أطراف ثالثة غير مصرح لها.",
-    validWithout: "تم إنشاء هذا المستند إلكترونيًا وهو صالح بدون توقيع مكتوب بخط اليد.",
-    noIncidents: "لا حوادث أثناء الفحص.",
-  },
-  zh: {
-    title: "放射科报告",
-    confidential: "机密医疗文件",
-    patientInfo: "患者信息",
-    patientId: "患者编号：",
-    lastName: "姓：",
-    firstName: "名：",
-    dob: "出生日期：",
-    examInfo: "检查详情",
-    examDate: "检查日期：",
-    examType: "检查类型：",
-    areasExplored: "检查部位：",
-    modalities: "检查方式：",
-    incidents: "异常情况：",
-    referringPhysician: "开单医生",
-    physicianName: "姓名：",
-    physicianContact: "联系方式：",
-    radiologist: "放射科医师",
-    radiologistName: "姓名：",
-    radiologistSignature: "电子签名：",
-    technicalDesc: "技术描述",
-    findings: "影像描述",
-    interpretation: "诊断意见与结论",
-    reportDate: "报告日期",
-    dateOfRedaction: "撰写日期：",
-    imageConservation: "影像保存",
-    conservationText: "医学影像以DICOM格式存储于PACS系统中，最低保存期限为20年。仅授权医务人员可访问。",
-    privacyTitle: "隐私与数据保护声明",
-    privacy1: "本报告依据《通用数据保护条例》（GDPR – 欧盟法规2016/679）生成。",
-    privacy2: "患者数据仅用于医学诊断目的。",
-    privacy3: "未向未授权第三方共享任何个人数据。",
-    validWithout: "本文件为电子生成，无需手写签名即为有效。",
-    noIncidents: "检查期间无异常情况。",
-  },
-  ja: {
-    title: "放射線科レポート",
-    confidential: "機密医療文書",
-    patientInfo: "患者情報",
-    patientId: "患者ID：",
-    lastName: "姓：",
-    firstName: "名：",
-    dob: "生年月日：",
-    examInfo: "検査詳細",
-    examDate: "検査日：",
-    examType: "検査種別：",
-    areasExplored: "検査部位：",
-    modalities: "モダリティ：",
-    incidents: "インシデント：",
-    referringPhysician: "紹介医",
-    physicianName: "氏名：",
-    physicianContact: "連絡先：",
-    radiologist: "放射線科医",
-    radiologistName: "氏名：",
-    radiologistSignature: "電子署名：",
-    technicalDesc: "技術的記述",
-    findings: "画像所見",
-    interpretation: "読影結果・結論",
-    reportDate: "レポート日付",
-    dateOfRedaction: "作成日：",
-    imageConservation: "画像保存",
-    conservationText: "医用画像はPACSにDICOM形式で最低20年間保存されます。アクセスは認定された医療従事者に限定されます。",
-    privacyTitle: "プライバシーおよびデータ保護に関する通知",
-    privacy1: "本レポートはGDPR（EU規則2016/679）に準拠して作成されました。",
-    privacy2: "患者データは医療診断目的のみに使用されています。",
-    privacy3: "個人データは未承認の第三者と共有されていません。",
-    validWithout: "本文書は電子的に作成されており、手書き署名なしで有効です。",
-    noIncidents: "検査中にインシデントなし。",
-  },
-  ru: {
-    title: "РАДИОЛОГИЧЕСКИЙ ОТЧЁТ",
-    confidential: "Конфиденциальный медицинский документ",
-    patientInfo: "ДАННЫЕ ПАЦИЕНТА",
-    patientId: "ID Пациента:",
-    lastName: "Фамилия:",
-    firstName: "Имя:",
-    dob: "Дата рождения:",
-    examInfo: "ДЕТАЛИ ОБСЛЕДОВАНИЯ",
-    examDate: "Дата обследования:",
-    examType: "Тип обследования:",
-    areasExplored: "Исследуемые области:",
-    modalities: "Модальности:",
-    incidents: "Инциденты:",
-    referringPhysician: "НАПРАВЛЯЮЩИЙ ВРАЧ",
-    physicianName: "Имя:",
-    physicianContact: "Контакт:",
-    radiologist: "РАДИОЛОГ",
-    radiologistName: "Имя:",
-    radiologistSignature: "Цифровая подпись:",
-    technicalDesc: "ТЕХНИЧЕСКОЕ ОПИСАНИЕ",
-    findings: "ОПИСАТЕЛЬНЫЕ РЕЗУЛЬТАТЫ",
-    interpretation: "ИНТЕРПРЕТАЦИЯ И ЗАКЛЮЧЕНИЕ",
-    reportDate: "ДАТА ОТЧЁТА",
-    dateOfRedaction: "Дата составления:",
-    imageConservation: "ХРАНЕНИЕ ИЗОБРАЖЕНИЙ",
-    conservationText: "Медицинские изображения хранятся в системе PACS в формате DICOM не менее 20 лет. Доступ ограничен уполномоченным медицинским персоналом.",
-    privacyTitle: "УВЕДОМЛЕНИЕ О КОНФИДЕНЦИАЛЬНОСТИ",
-    privacy1: "Данный отчёт создан в соответствии с GDPR (Регламент ЕС 2016/679).",
-    privacy2: "Данные пациента обработаны исключительно в целях медицинской диагностики.",
-    privacy3: "Персональные данные не были переданы неуполномоченным третьим лицам.",
-    validWithout: "Документ создан в электронном виде и действителен без рукописной подписи.",
-    noIncidents: "Без инцидентов во время обследования.",
+    globalIndication: "INDICATION GLOBALE",
+    lesionSummary: "SYNTHÈSE DES LÉSIONS",
+    evolutionTitle: "ÉVOLUTION",
+    attentionPoints: "POINTS D'ATTENTION / DISCORDANCES",
+    finalSynthesis: "SYNTHÈSE FINALE",
+    tnmStage: "SUPPOSITION DE STADE TNM",
+    warningsTitle: "AVERTISSEMENTS",
+    patientTitle: "RESUME PATIENT",
+    patientConfidential: "Document Patient Confidentiel",
+    patientSummarySection: "VOS RESULTATS EXPLIQUES",
+    patientDisclaimer: "AVIS IMPORTANT",
+    patientDisclaimerText:
+      "Ce resume est fourni a titre informatif uniquement. Il est base sur vos comptes rendus d'imagerie medicale et ne remplace pas une consultation avec votre medecin. Veuillez discuter de ces resultats avec votre professionnel de sante pour une comprehension complete de votre situation et des prochaines etapes.",
   },
 };
 
 function t(lang: ReportLanguage, key: string): string {
   return translations[lang]?.[key] ?? translations.en[key] ?? key;
+}
+
+/** Safely coerce any value to a string – prevents jsPDF "t2.split is not a function" crash */
+function safeStr(v: unknown): string {
+  if (v === null || v === undefined) return "N/A";
+  return String(v);
+}
+
+/** Strip markdown formatting markers that would appear literally in the PDF.
+ *  This is a client-side safety net complementing the backend stripping. */
+function stripMarkdown(text: string): string {
+  if (!text) return text;
+  // Remove bold: **text**
+  let result = text.replace(/\*\*(.+?)\*\*/g, "$1");
+  // Remove bold: __text__
+  result = result.replace(/__(.+?)__/g, "$1");
+  // Remove heading markers: ## text → text
+  result = result.replace(/^#{1,6}\s+/gm, "");
+  return result;
+}
+
+/** Convert YYYYMMDD to YYYY-MM-DD. Pass through other formats unchanged. */
+function formatDate(dateStr: string): string {
+  const s = dateStr.trim();
+  if (/^\d{8}$/.test(s)) {
+    return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  }
+  return s;
+}
+
+/** Return a sortable key for anti-chronological ordering (YYYY-MM-DD). */
+function dateSortKey(dateStr: string): string {
+  const s = formatDate(dateStr);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return "0000-00-00";
 }
 
 function addSection(doc: jsPDF, title: string, y: number): number {
@@ -377,9 +159,9 @@ function addField(doc: jsPDF, label: string, value: string, y: number): number {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
-  doc.text(label, 22, y);
+  doc.text(safeStr(label), 22, y);
   doc.setFont("helvetica", "normal");
-  doc.text(value, 72, y);
+  doc.text(stripMarkdown(safeStr(value)), 72, y);
   return y + 7;
 }
 
@@ -531,6 +313,488 @@ export function generateMockReport(patientId: string, lang: ReportLanguage = "en
     doc.text(wrapped, 105, y, { align: "center" });
     y += wrapped.length * 3.5 + 1.5;
   });
+
+  return doc.output("blob");
+}
+
+function addWrappedText(doc: jsPDF, text: string, y: number): number {
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  const lines = doc.splitTextToSize(stripMarkdown(safeStr(sanitizeDictString(text))), 165);
+  for (const line of lines) {
+    y = checkPage(doc, y, 8);
+    doc.text(line, 22, y);
+    y += 5;
+  }
+  return y + 2;
+}
+
+/**
+ * Detect Python-style dict strings like {'key': 'value'} and convert them
+ * to human-readable "key: value" lines. This is a client-side safety net
+ * for any dict structures that slip through backend sanitization.
+ */
+function sanitizeDictString(text: string): string {
+  if (!text || !text.includes("{")) return text;
+
+  // Try to parse the entire string as a dict
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    const parsed = tryParseDict(trimmed);
+    if (parsed) return formatDictToText(parsed);
+  }
+
+  // Replace inline dict substrings
+  return text.replace(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, (match) => {
+    const parsed = tryParseDict(match);
+    if (parsed) return formatDictToText(parsed);
+    return match;
+  });
+}
+
+function tryParseDict(s: string): Record<string, unknown> | null {
+  // Try JSON
+  try {
+    const obj = JSON.parse(s);
+    if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) return obj;
+  } catch { /* noop */ }
+  // Try with single→double quote conversion
+  try {
+    const obj = JSON.parse(s.replace(/'/g, '"'));
+    if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) return obj;
+  } catch { /* noop */ }
+  return null;
+}
+
+function formatDictToText(obj: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      const inner = Object.entries(v as Record<string, unknown>)
+        .filter(([, iv]) => iv)
+        .map(([ik, iv]) => `${ik}: ${String(iv)}`)
+        .join("; ");
+      parts.push(`${k}: ${inner}`);
+    } else if (v) {
+      parts.push(`${k}: ${String(v)}`);
+    }
+  }
+  return parts.join("\n");
+}
+
+/** Render final_synthesis – handle dict-like strings, newline-delimited text, or plain text */
+function addFormattedSynthesis(doc: jsPDF, text: string, y: number, lang: ReportLanguage): number {
+  const s = safeStr(text).trim();
+
+  // Attempt to parse as JSON if it looks like a dict/object
+  if (s.startsWith("{")) {
+    try {
+      // Handle Python-style single quotes by converting to double quotes
+      const jsonStr = s.replace(/'/g, '"');
+      const obj = JSON.parse(jsonStr);
+      if (typeof obj === "object" && obj !== null) {
+        const labelMap: Record<string, Record<string, string>> = {
+          en: { Diagnosis: "Diagnosis", Recommendation: "Recommendation" },
+          fr: { Diagnosis: "Diagnostic", Recommendation: "Recommandation" },
+        };
+        const excluded = new Set(["Hypothesis", "hypothesis", "Hypothèse", "hypothèse"]);
+        const labels = labelMap[lang] ?? labelMap.en;
+        for (const [key, val] of Object.entries(obj)) {
+          if (val && !excluded.has(key)) {
+            y = checkPage(doc, y, 14);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(30, 41, 59);
+            const label = labels[key] ?? key;
+            doc.text(`${label} :`, 22, y);
+            y += 6;
+            y = addWrappedText(doc, String(val), y);
+          }
+        }
+        return y;
+      }
+    } catch {
+      // Not valid JSON, fall through to text handling
+    }
+  }
+
+  // Handle newline-delimited text (from backend formatting)
+  if (s.includes("\n")) {
+    for (const line of s.split("\n")) {
+      if (line.trim()) {
+        y = addWrappedText(doc, line.trim(), y);
+      }
+    }
+    return y;
+  }
+
+  // Plain text fallback
+  return addWrappedText(doc, s, y);
+}
+
+/** Render tnm_stage – handle dict-like strings with T/N/M keys, or plain text */
+function addFormattedTNM(doc: jsPDF, text: string, y: number, lang: ReportLanguage): number {
+  const s = safeStr(text).trim();
+
+  // If it looks like a dict/object, try to parse and format it
+  if (s.startsWith("{")) {
+    const parsed = tryParseDict(s);
+    if (parsed) {
+      const labelMap: Record<string, string> = {
+        T: "T", N: "N", M: "M",
+        stage_grouping: "Classification",
+        note: "Note",
+      };
+      const keyOrder = ["T", "N", "M", "stage_grouping", "note"];
+      const rendered = new Set<string>();
+      for (const key of keyOrder) {
+        const val = parsed[key];
+        if (val) {
+          y = checkPage(doc, y, 14);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(30, 41, 59);
+          doc.text(`${labelMap[key] ?? key} :`, 22, y);
+          y += 6;
+          y = addWrappedText(doc, String(val), y);
+          rendered.add(key);
+        }
+      }
+      // Render any extra keys
+      for (const [key, val] of Object.entries(parsed)) {
+        if (!rendered.has(key) && val) {
+          y = checkPage(doc, y, 14);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(30, 41, 59);
+          doc.text(`${key} :`, 22, y);
+          y += 6;
+          y = addWrappedText(doc, String(val), y);
+        }
+      }
+      return y;
+    }
+  }
+
+  // Handle newline-delimited text (from backend formatting)
+  if (s.includes("\n")) {
+    for (const line of s.split("\n")) {
+      if (line.trim()) {
+        // Check if line has a label prefix like "T : ..."
+        const colonIdx = line.indexOf(" : ");
+        if (colonIdx > 0 && colonIdx < 20) {
+          y = checkPage(doc, y, 14);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(30, 41, 59);
+          doc.text(line.substring(0, colonIdx + 3), 22, y);
+          y += 6;
+          y = addWrappedText(doc, line.substring(colonIdx + 3).trim(), y);
+        } else {
+          y = addWrappedText(doc, line.trim(), y);
+        }
+      }
+    }
+    return y;
+  }
+
+  // Plain text fallback
+  return addWrappedText(doc, s, y);
+}
+
+export function generateReportFromData(
+  data: ReportData,
+  lang: ReportLanguage = "en"
+): Blob {
+  const doc = new jsPDF();
+  const now = new Date(data.generation_date);
+  const dateStr = now.toLocaleDateString(lang === "en" ? "en-US" : lang, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Header (same styling as mock)
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 40, "F");
+  doc.setTextColor(56, 189, 176);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "title"), 105, 18, { align: "center" });
+  doc.setFontSize(10);
+  doc.setTextColor(148, 163, 184);
+  doc.text(t(lang, "confidential"), 105, 28, { align: "center" });
+
+  let y = 55;
+
+  // ── A. CLINICAL CONTEXT ──────────────────────────────────────────────
+  // Section 1: Patient ID + Date
+  y = addSection(doc, t(lang, "patientInfo"), y);
+  y = addField(doc, t(lang, "patientId"), data.patient_id, y);
+  y = addField(doc, t(lang, "dateOfRedaction"), dateStr, y);
+
+  // ── B. BOTTOM LINE UP FRONT (BLUF) ──────────────────────────────────
+  // Section 2: Synthèse finale (most important — at the top)
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "finalSynthesis"), y);
+  y = addFormattedSynthesis(doc, data.final_synthesis, y, lang);
+
+  // Section 3: Indication globale
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "globalIndication"), y);
+  y = addWrappedText(doc, data.indication, y);
+
+  // Section 4: TNM Stage (grouped with synthesis)
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "tnmStage"), y);
+  y = addFormattedTNM(doc, data.tnm_stage, y, lang);
+
+  // Section 5: Évolution (disease trajectory — second most important)
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "evolutionTitle"), y);
+  if (typeof data.evolution === "object" && data.evolution) {
+    const evoLabels: Record<string, string> = {
+      pulmonary: lang === "fr" ? "Pulmonaire" : "Pulmonary",
+      nodes: lang === "fr" ? "Ganglions" : "Lymph Nodes",
+      metastasis_extra_pulmonary: lang === "fr" ? "Métastases extra-pulmonaires" : "Extra-pulmonary Metastases",
+    };
+    for (const [key, val] of Object.entries(data.evolution)) {
+      if (val) {
+        y = checkPage(doc, y, 12);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text(evoLabels[key] ?? key, 22, y);
+        y += 6;
+        // Sanitize any remaining dict strings in the evolution sub-field
+        const cleanVal = sanitizeDictString(String(val));
+        // If the sanitized text contains newlines (formatted from dict), render each line
+        if (cleanVal.includes("\n")) {
+          for (const line of cleanVal.split("\n")) {
+            if (line.trim()) {
+              y = addWrappedText(doc, line.trim(), y);
+            }
+          }
+        } else {
+          y = addWrappedText(doc, cleanVal, y);
+        }
+      }
+    }
+  } else {
+    y = addWrappedText(doc, safeStr(data.evolution), y);
+  }
+
+  // ── C. TECHNICAL DETAILS & RAW DATA ──────────────────────────────────
+  // Section 6: Examens analysés (dates formatted, anti-chronological)
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "examInfo"), y);
+  const exams = [...(data.exams ?? [])].sort(
+    (a, b) => dateSortKey(b.date).localeCompare(dateSortKey(a.date))
+  );
+  if (exams.length > 0) {
+    exams.forEach((exam) => {
+      y = checkPage(doc, y, 12);
+      y = addField(doc, formatDate(safeStr(exam.date)), safeStr(exam.exam_type), y);
+    });
+  } else {
+    y = addWrappedText(doc, "N/A", y);
+  }
+
+  // Section 7: Synthèse des lésions (dates formatted, anti-chronological)
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "lesionSummary"), y);
+  const lesions = [...(data.lesion_summary ?? [])].sort(
+    (a, b) => dateSortKey(b.date).localeCompare(dateSortKey(a.date))
+  );
+  if (lesions.length > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    lesions.forEach((lesion) => {
+      y = checkPage(doc, y, 15);
+      // Build a composite description from the structured fields
+      const parts = [
+        stripMarkdown(safeStr(lesion.anomaly)),
+        lesion.position ? stripMarkdown(safeStr(lesion.position)) : "",
+        lesion.size ? `(${stripMarkdown(safeStr(lesion.size))})` : "",
+        lesion.nature ? stripMarkdown(safeStr(lesion.nature)) : "",
+        lesion.observations ? stripMarkdown(safeStr(lesion.observations)) : "",
+      ].filter(Boolean).join(" – ");
+      const label = parts || "N/A";
+      const lines = doc.splitTextToSize(
+        `• [${formatDate(safeStr(lesion.date))}] ${label}`,
+        165
+      );
+      doc.text(lines, 22, y);
+      y += lines.length * 5 + 3;
+    });
+  } else {
+    y = addWrappedText(doc, "N/A", y);
+  }
+
+  // ── D. META-DATA & DISCLAIMERS ───────────────────────────────────────
+  // Section 8: Points d'attention / Discordances
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "attentionPoints"), y);
+  if (Array.isArray(data.attention_points)) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    data.attention_points.forEach((pt) => {
+      y = checkPage(doc, y, 15);
+      const desc = typeof pt === "object"
+        ? `• ${stripMarkdown(safeStr(pt.description))} (Source: ${stripMarkdown(safeStr(pt.exam_source))}, Ref: ${stripMarkdown(safeStr(pt.ct_reference))})`
+        : `• ${stripMarkdown(safeStr(pt))}`;
+      const lines = doc.splitTextToSize(desc, 165);
+      doc.text(lines, 22, y);
+      y += lines.length * 5 + 3;
+    });
+    if (data.attention_points.length === 0) {
+      y = addWrappedText(doc, "N/A", y);
+    }
+  } else {
+    y = addWrappedText(doc, safeStr(data.attention_points), y);
+  }
+
+  // Section 9: Warnings (if any)
+  const warnings = data.warnings ?? [];
+  if (warnings.length > 0) {
+    y += 4;
+    y = checkPage(doc, y, 30);
+    y = addSection(doc, t(lang, "warningsTitle"), y);
+    doc.setTextColor(200, 80, 40);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    warnings.forEach((w) => {
+      y = checkPage(doc, y, 10);
+      const lines = doc.splitTextToSize(`/!\\ ${safeStr(w)}`, 165);
+      doc.text(lines, 22, y);
+      y += lines.length * 4.5 + 3;
+    });
+    doc.setTextColor(30, 41, 59);
+  }
+
+  // Footer
+  y += 6;
+  y = checkPage(doc, y, 40);
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, y, 190, y);
+  y += 8;
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.text(t(lang, "validWithout"), 105, y, { align: "center" });
+  doc.text(
+    `Report ID: RPT-${data.patient_id}-${Date.now().toString(36).toUpperCase()}`,
+    105,
+    y + 5,
+    { align: "center" }
+  );
+
+  // Privacy / RGPD
+  y += 14;
+  y = checkPage(doc, y, 40);
+  doc.setDrawColor(56, 189, 176);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, 190, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(120, 140, 160);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "privacyTitle"), 105, y, { align: "center" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  [t(lang, "privacy1"), t(lang, "privacy2"), t(lang, "privacy3")].forEach(
+    (line) => {
+      const wrapped = doc.splitTextToSize(line, 165);
+      doc.text(wrapped, 105, y, { align: "center" });
+      y += wrapped.length * 3.5 + 1.5;
+    }
+  );
+
+  return doc.output("blob");
+}
+
+export function generatePatientReport(
+  data: ReportData,
+  lang: ReportLanguage = "en"
+): Blob {
+  const doc = new jsPDF();
+  const now = new Date(data.generation_date);
+  const dateStr = now.toLocaleDateString(lang === "en" ? "en-US" : lang, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Header
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 40, "F");
+  doc.setTextColor(56, 189, 176);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "patientTitle"), 105, 18, { align: "center" });
+  doc.setFontSize(10);
+  doc.setTextColor(148, 163, 184);
+  doc.text(t(lang, "patientConfidential"), 105, 28, { align: "center" });
+
+  let y = 55;
+
+  // Section 1: Patient ID + Date
+  y = addSection(doc, t(lang, "patientInfo"), y);
+  y = addField(doc, t(lang, "patientId"), data.patient_id, y);
+  y = addField(doc, t(lang, "dateOfRedaction"), dateStr, y);
+
+  // Section 2: Patient Summary
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "patientSummarySection"), y);
+  y = addWrappedText(doc, stripMarkdown(data.patient_summary || "N/A"), y);
+
+  // Section 3: Disclaimer
+  y += 8;
+  y = checkPage(doc, y, 50);
+  y = addSection(doc, t(lang, "patientDisclaimer"), y);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  const disclaimerLines = doc.splitTextToSize(
+    t(lang, "patientDisclaimerText"),
+    165
+  );
+  for (const line of disclaimerLines) {
+    y = checkPage(doc, y, 8);
+    doc.text(line, 22, y);
+    y += 5;
+  }
+
+  // Footer: RGPD
+  y += 10;
+  y = checkPage(doc, y, 40);
+  doc.setDrawColor(56, 189, 176);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, 190, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(120, 140, 160);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "privacyTitle"), 105, y, { align: "center" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  [t(lang, "privacy1"), t(lang, "privacy2"), t(lang, "privacy3")].forEach(
+    (line) => {
+      const wrapped = doc.splitTextToSize(line, 165);
+      doc.text(wrapped, 105, y, { align: "center" });
+      y += wrapped.length * 3.5 + 1.5;
+    }
+  );
 
   return doc.output("blob");
 }

@@ -1,10 +1,12 @@
-import { useState, useCallback } from "react";
-import { Activity, Globe, Crosshair, Monitor, Volume2, VolumeX } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Activity, Globe, Stethoscope, User, Volume2, VolumeX } from "lucide-react";
 import PatientIdInput from "@/components/PatientIdInput";
 import ReportViewer from "@/components/ReportViewer";
 import EcgAnimation from "@/components/EcgAnimation";
 import TumorGame from "@/components/TumorGame";
-import { generateMockReport, LANGUAGE_LABELS, type ReportLanguage } from "@/lib/mockReport";
+import { generateReportFromData, generatePatientReport, LANGUAGE_LABELS, type ReportLanguage } from "@/lib/mockReport";
+import { fetchReport, type ReportMode } from "@/lib/api";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -13,35 +15,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const UI_STRINGS: Record<ReportLanguage, { subtitle: string; footer: string }> = {
-  en: { subtitle: "Enter a valid patient identifier to retrieve and preview the diagnostic report.", footer: "The Augmented Radiologist · For authorized medical personnel only" },
-  fr: { subtitle: "Entrez un identifiant patient valide pour récupérer et prévisualiser le compte rendu.", footer: "The Augmented Radiologist · Réservé au personnel médical autorisé" },
-  es: { subtitle: "Ingrese un identificador de paciente válido para recuperar y previsualizar el informe.", footer: "The Augmented Radiologist · Solo para personal médico autorizado" },
-  de: { subtitle: "Geben Sie eine gültige Patienten-ID ein, um den Befund abzurufen und anzuzeigen.", footer: "The Augmented Radiologist · Nur für autorisiertes medizinisches Personal" },
-  it: { subtitle: "Inserisci un identificativo paziente valido per recuperare e visualizzare il referto.", footer: "The Augmented Radiologist · Solo per personale medico autorizzato" },
-  pt: { subtitle: "Insira um identificador de paciente válido para recuperar e visualizar o relatório.", footer: "The Augmented Radiologist · Apenas para pessoal médico autorizado" },
-  ar: { subtitle: "أدخل معرّف مريض صالحًا لاسترداد التقرير التشخيصي ومعاينته.", footer: "The Augmented Radiologist · للطاقم الطبي المصرح له فقط" },
-  zh: { subtitle: "输入有效的患者编号以检索和预览诊断报告。", footer: "The Augmented Radiologist · 仅限授权医务人员使用" },
-  ja: { subtitle: "有効な患者IDを入力して診断レポートを取得・プレビューしてください。", footer: "The Augmented Radiologist · 認定医療従事者専用" },
-  ru: { subtitle: "Введите действительный идентификатор пациента для получения и просмотра отчёта.", footer: "The Augmented Radiologist · Только для авторизованного медицинского персонала" },
+const UI_STRINGS: Record<ReportLanguage, { subtitle: string; footer: string; radiologistLabel: string; patientLabel: string }> = {
+  en: { subtitle: "Enter a valid patient identifier to retrieve and preview the diagnostic report.", footer: "The Loumavia · For authorized medical personnel only", radiologistLabel: "Radiologist", patientLabel: "Patient" },
+  fr: { subtitle: "Entrez un identifiant patient valide pour récupérer et prévisualiser le compte rendu.", footer: "The Loumavia · Réservé au personnel médical autorisé", radiologistLabel: "Radiologue", patientLabel: "Patient" },
 };
 
 const Index = () => {
   const [report, setReport] = useState<{ blob: Blob; patientId: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<ReportLanguage>("fr");
-  const [waitingMode, setWaitingMode] = useState<"ecg" | "game">("ecg");
+  const [mode, setMode] = useState<ReportMode>("radiologist");
   const [musicOn, setMusicOn] = useState(false);
 
   const strings = UI_STRINGS[language];
 
   const handleGenerateReport = useCallback(async (patientId: string) => {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 15000));
-    const blob = generateMockReport(patientId, language);
-    setReport({ blob, patientId });
-    setLoading(false);
-  }, [language]);
+    setError(null);
+    try {
+      const data = await fetchReport(patientId, language, mode);
+      const blob = data.mode === "patient"
+        ? generatePatientReport(data, language)
+        : generateReportFromData(data, language);
+      setReport({ blob, patientId });
+    } catch (err) {
+      console.error("API error:", err);
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  }, [language, mode]);
+
+  useEffect(() => {
+    setReport(null);
+  }, [mode]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-background overflow-hidden">
@@ -59,32 +67,6 @@ const Index = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Waiting mode toggle */}
-          <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-0.5">
-            <button
-              onClick={() => setWaitingMode("ecg")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all ${
-                waitingMode === "ecg"
-                  ? "bg-primary/15 text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Monitor className="h-3.5 w-3.5" />
-              ECG
-            </button>
-            <button
-              onClick={() => setWaitingMode("game")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all ${
-                waitingMode === "game"
-                  ? "bg-primary/15 text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Crosshair className="h-3.5 w-3.5" />
-              Game
-            </button>
-          </div>
-
           {/* Music toggle */}
           <button
             onClick={() => setMusicOn((v) => !v)}
@@ -97,6 +79,32 @@ const Index = () => {
           >
             {musicOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
+
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(v) => { if (v) setMode(v as ReportMode); }}
+            variant="outline"
+            size="sm"
+            className="border border-border/50 rounded-lg bg-card/50 backdrop-blur-sm p-0.5"
+          >
+            <ToggleGroupItem
+              value="radiologist"
+              aria-label={strings.radiologistLabel}
+              className="flex items-center gap-1.5 px-3 text-xs data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            >
+              <Stethoscope className="h-3.5 w-3.5" />
+              {strings.radiologistLabel}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="patient"
+              aria-label={strings.patientLabel}
+              className="flex items-center gap-1.5 px-3 text-xs data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            >
+              <User className="h-3.5 w-3.5" />
+              {strings.patientLabel}
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           <Globe className="h-4 w-4 text-muted-foreground" />
           <Select value={language} onValueChange={(v) => setLanguage(v as ReportLanguage)}>
@@ -118,7 +126,7 @@ const Index = () => {
         {loading ? (
           <div className="flex flex-col items-center gap-8 w-full max-w-lg">
             <EcgAnimation language={language} />
-            {waitingMode === "game" && <TumorGame language={language} />}
+            <TumorGame language={language} />
           </div>
         ) : report ? (
           <ReportViewer
@@ -137,6 +145,17 @@ const Index = () => {
                 {strings.subtitle}
               </p>
             </div>
+            {error && (
+              <div className="w-full max-w-sm rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-center">
+                <p className="text-sm font-medium text-destructive">{error}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {language === "fr" ? "Fermer" : "Dismiss"}
+                </button>
+              </div>
+            )}
             <PatientIdInput onValidId={handleGenerateReport} language={language} />
           </div>
         )}
