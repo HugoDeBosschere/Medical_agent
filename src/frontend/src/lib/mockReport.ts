@@ -49,6 +49,12 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     finalSynthesis: "FINAL SYNTHESIS",
     tnmStage: "PROPOSED TNM STAGE",
     warningsTitle: "WARNINGS",
+    patientTitle: "PATIENT SUMMARY",
+    patientConfidential: "Confidential Patient Document",
+    patientSummarySection: "YOUR RESULTS EXPLAINED",
+    patientDisclaimer: "IMPORTANT NOTICE",
+    patientDisclaimerText:
+      "This summary is provided for informational purposes only. It is based on your medical imaging reports and is not a substitute for a consultation with your doctor. Please discuss these results with your healthcare provider for a complete understanding of your condition and next steps.",
   },
   fr: {
     title: "COMPTE RENDU RADIOLOGIQUE",
@@ -90,6 +96,12 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     finalSynthesis: "SYNTHÈSE FINALE",
     tnmStage: "SUPPOSITION DE STADE TNM",
     warningsTitle: "AVERTISSEMENTS",
+    patientTitle: "RESUME PATIENT",
+    patientConfidential: "Document Patient Confidentiel",
+    patientSummarySection: "VOS RESULTATS EXPLIQUES",
+    patientDisclaimer: "AVIS IMPORTANT",
+    patientDisclaimerText:
+      "Ce resume est fourni a titre informatif uniquement. Il est base sur vos comptes rendus d'imagerie medicale et ne remplace pas une consultation avec votre medecin. Veuillez discuter de ces resultats avec votre professionnel de sante pour une comprehension complete de votre situation et des prochaines etapes.",
   },
 };
 
@@ -101,6 +113,19 @@ function t(lang: ReportLanguage, key: string): string {
 function safeStr(v: unknown): string {
   if (v === null || v === undefined) return "N/A";
   return String(v);
+}
+
+/** Strip markdown formatting markers that would appear literally in the PDF.
+ *  This is a client-side safety net complementing the backend stripping. */
+function stripMarkdown(text: string): string {
+  if (!text) return text;
+  // Remove bold: **text**
+  let result = text.replace(/\*\*(.+?)\*\*/g, "$1");
+  // Remove bold: __text__
+  result = result.replace(/__(.+?)__/g, "$1");
+  // Remove heading markers: ## text → text
+  result = result.replace(/^#{1,6}\s+/gm, "");
+  return result;
 }
 
 /** Convert YYYYMMDD to YYYY-MM-DD. Pass through other formats unchanged. */
@@ -136,7 +161,7 @@ function addField(doc: jsPDF, label: string, value: string, y: number): number {
   doc.setTextColor(30, 41, 59);
   doc.text(safeStr(label), 22, y);
   doc.setFont("helvetica", "normal");
-  doc.text(safeStr(value), 72, y);
+  doc.text(stripMarkdown(safeStr(value)), 72, y);
   return y + 7;
 }
 
@@ -296,7 +321,7 @@ function addWrappedText(doc: jsPDF, text: string, y: number): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
-  const lines = doc.splitTextToSize(safeStr(sanitizeDictString(text)), 165);
+  const lines = doc.splitTextToSize(stripMarkdown(safeStr(sanitizeDictString(text))), 165);
   for (const line of lines) {
     y = checkPage(doc, y, 8);
     doc.text(line, 22, y);
@@ -596,11 +621,11 @@ export function generateReportFromData(
       y = checkPage(doc, y, 15);
       // Build a composite description from the structured fields
       const parts = [
-        safeStr(lesion.anomaly),
-        lesion.position ? safeStr(lesion.position) : "",
-        lesion.size ? `(${safeStr(lesion.size)})` : "",
-        lesion.nature ? safeStr(lesion.nature) : "",
-        lesion.observations ? safeStr(lesion.observations) : "",
+        stripMarkdown(safeStr(lesion.anomaly)),
+        lesion.position ? stripMarkdown(safeStr(lesion.position)) : "",
+        lesion.size ? `(${stripMarkdown(safeStr(lesion.size))})` : "",
+        lesion.nature ? stripMarkdown(safeStr(lesion.nature)) : "",
+        lesion.observations ? stripMarkdown(safeStr(lesion.observations)) : "",
       ].filter(Boolean).join(" – ");
       const label = parts || "N/A";
       const lines = doc.splitTextToSize(
@@ -626,8 +651,8 @@ export function generateReportFromData(
     data.attention_points.forEach((pt) => {
       y = checkPage(doc, y, 15);
       const desc = typeof pt === "object"
-        ? `• ${safeStr(pt.description)} (Source: ${safeStr(pt.exam_source)}, Ref: ${safeStr(pt.ct_reference)})`
-        : `• ${safeStr(pt)}`;
+        ? `• ${stripMarkdown(safeStr(pt.description))} (Source: ${stripMarkdown(safeStr(pt.exam_source))}, Ref: ${stripMarkdown(safeStr(pt.ct_reference))})`
+        : `• ${stripMarkdown(safeStr(pt))}`;
       const lines = doc.splitTextToSize(desc, 165);
       doc.text(lines, 22, y);
       y += lines.length * 5 + 3;
@@ -675,6 +700,83 @@ export function generateReportFromData(
 
   // Privacy / RGPD
   y += 14;
+  y = checkPage(doc, y, 40);
+  doc.setDrawColor(56, 189, 176);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, 190, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(120, 140, 160);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "privacyTitle"), 105, y, { align: "center" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  [t(lang, "privacy1"), t(lang, "privacy2"), t(lang, "privacy3")].forEach(
+    (line) => {
+      const wrapped = doc.splitTextToSize(line, 165);
+      doc.text(wrapped, 105, y, { align: "center" });
+      y += wrapped.length * 3.5 + 1.5;
+    }
+  );
+
+  return doc.output("blob");
+}
+
+export function generatePatientReport(
+  data: ReportData,
+  lang: ReportLanguage = "en"
+): Blob {
+  const doc = new jsPDF();
+  const now = new Date(data.generation_date);
+  const dateStr = now.toLocaleDateString(lang === "en" ? "en-US" : lang, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Header
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 40, "F");
+  doc.setTextColor(56, 189, 176);
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text(t(lang, "patientTitle"), 105, 18, { align: "center" });
+  doc.setFontSize(10);
+  doc.setTextColor(148, 163, 184);
+  doc.text(t(lang, "patientConfidential"), 105, 28, { align: "center" });
+
+  let y = 55;
+
+  // Section 1: Patient ID + Date
+  y = addSection(doc, t(lang, "patientInfo"), y);
+  y = addField(doc, t(lang, "patientId"), data.patient_id, y);
+  y = addField(doc, t(lang, "dateOfRedaction"), dateStr, y);
+
+  // Section 2: Patient Summary
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "patientSummarySection"), y);
+  y = addWrappedText(doc, stripMarkdown(data.patient_summary || "N/A"), y);
+
+  // Section 3: Disclaimer
+  y += 8;
+  y = checkPage(doc, y, 50);
+  y = addSection(doc, t(lang, "patientDisclaimer"), y);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  const disclaimerLines = doc.splitTextToSize(
+    t(lang, "patientDisclaimerText"),
+    165
+  );
+  for (const line of disclaimerLines) {
+    y = checkPage(doc, y, 8);
+    doc.text(line, 22, y);
+    y += 5;
+  }
+
+  // Footer: RGPD
+  y += 10;
   y = checkPage(doc, y, 40);
   doc.setDrawColor(56, 189, 176);
   doc.setLineWidth(0.3);

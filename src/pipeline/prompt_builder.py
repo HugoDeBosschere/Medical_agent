@@ -3,6 +3,29 @@ LANGUAGE_MAP = {
     "en": "English",
 }
 
+PATIENT_PROMPT_TEMPLATE = """You are a medical assistant writing directly for a patient. Your task is to explain only the information that concerns the lungs and nearby areas in a clear, simple, and reassuring way. Focus exclusively on findings related to the lungs, lung nodules or masses, lymph nodes in the chest, and any mention of possible spread to other organs such as the brain, liver, adrenal glands, or bones when discussed in a cancer context. Clearly explain what was found, mention the size if provided using simple language, and indicate whether the findings are stable, increasing, decreasing, or new compared to previous scans. Use plain, everyday language and avoid medical terminology such as staging systems or technical classifications. Do not speculate, do not interpret beyond what is written, and do not include unrelated findings. Maintain a calm, neutral, and reassuring tone throughout, and return only the explanation intended for the patient.
+
+=== SOURCE A: CLINICAL REPORTS (NPR) ===
+{npr_text}
+
+=== SOURCE B: CT SEGMENTATION DATA ===
+{seg_text}
+
+=== INSTRUCTIONS ===
+Based on the sources above, generate a clear patient-facing summary.
+
+CRITICAL RULES:
+1. NO HALLUCINATION: If information is missing, say so plainly.
+2. NO MEDICAL JARGON: Avoid TNM staging, technical classifications, or abbreviations.
+3. EXACT JSON ONLY: Respond ONLY with a valid JSON object matching the exact structure below.
+
+Respond ONLY with valid JSON in this exact structure:
+{{
+  "patient_summary": "Your clear, reassuring explanation for the patient goes here. Write in full sentences and paragraphs."
+}}
+
+{language_instruction}"""
+
 REPORT_PROMPT_TEMPLATE = """You are an expert oncology radiologist assistant. You will generate a structured follow-up report for an oncology patient based on two data sources provided below.
 
 === SOURCE A: CLINICAL REPORTS (NPR) ===
@@ -104,7 +127,7 @@ Respond ONLY with valid JSON in this exact structure:
 {language_instruction}"""
 
 
-def build_final_prompt(npr_text: str, seg_text: str, language: str) -> str:
+def build_final_prompt(npr_text: str, seg_text: str, language: str, mode: str = "radiologist") -> str:
     lang_name = LANGUAGE_MAP.get(language, "English")
 
     if not seg_text:
@@ -117,7 +140,9 @@ def build_final_prompt(npr_text: str, seg_text: str, language: str) -> str:
             f"All section values in the JSON must be written in {lang_name}."
         )
 
-    return REPORT_PROMPT_TEMPLATE.format(
+    template = PATIENT_PROMPT_TEMPLATE if mode == "patient" else REPORT_PROMPT_TEMPLATE
+
+    return template.format(
         npr_text=npr_text,
         seg_text=seg_text,
         language_instruction=language_instruction,

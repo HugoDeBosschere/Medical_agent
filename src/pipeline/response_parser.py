@@ -31,6 +31,147 @@ def _date_sort_key(date_str: str) -> str:
     return "0000-00-00"
 
 
+def _strip_markdown(text: str) -> str:
+    """Remove common markdown formatting markers that would appear literally in PDFs."""
+    if not text:
+        return text
+    # Remove bold: **text**
+    result = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    # Remove bold: __text__
+    result = re.sub(r'__(.+?)__', r'\1', result)
+    # Remove heading markers: ## text → text
+    result = re.sub(r'^#{1,6}\s+', '', result, flags=re.MULTILINE)
+    return result
+
+
+def _try_parse_dict(text: str) -> dict | None:
+    """Try to parse a string as a JSON or Python-style dict. Returns None if not a dict."""
+    s = text.strip()
+    if not (s.startswith("{") and s.endswith("}")):
+        return None
+    # Try JSON first
+    try:
+        obj = json.loads(s)
+        if isinstance(obj, dict):
+            return obj
+    except (json.JSONDecodeError, ValueError):
+        pass
+    # Try Python-style single quotes → double quotes (handle apostrophes via ast.literal_eval)
+    try:
+        import ast
+        obj = ast.literal_eval(s)
+        if isinstance(obj, dict):
+            return obj
+    except (ValueError, SyntaxError):
+        pass
+    return None
+
+
+def _dict_to_readable(obj: dict, labels: dict[str, str] | None = None) -> str:
+    """Convert a dict to human-readable 'key : value' lines.
+    Handles nested dicts by flattening them into sub-entries."""
+    parts: list[str] = []
+    for k, v in obj.items():
+        label = labels.get(k, k) if labels else k
+        if isinstance(v, dict):
+            # Flatten nested dict into "key: sub_key: sub_value; ..."
+            inner = "; ".join(f"{sk}: {sv}" for sk, sv in v.items() if sv)
+            parts.append(f"{label} : {inner}")
+        elif v:
+            parts.append(f"{label} : {v}")
+    return "\n".join(parts) if parts else ""
+
+
+def _sanitize_dict_string(text: str) -> str:
+    """Detect Python/JSON dict strings and convert to readable text.
+    Applied as a safety net to ALL text fields before they reach the PDF."""
+    if not text or "{" not in text:
+        return text
+    s = text.strip()
+    # If the entire string is a dict, convert it
+    if s.startswith("{") and s.endswith("}"):
+        parsed = _try_parse_dict(s)
+        if parsed:
+            return _dict_to_readable(parsed)
+    # Replace inline dict substrings
+    def _replace_inline(match: re.Match) -> str:
+        parsed = _try_parse_dict(match.group())
+        if parsed:
+            return _dict_to_readable(parsed)
+        return match.group()
+    return re.sub(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', _replace_inline, text)
+
+
+def _format_tnm_stage(value) -> str:
+    """Format tnm_stage: if dict with T/N/M keys, render as labeled lines.
+    Also handles string-encoded dicts (e.g. Python repr from str())."""
+    labels = {
+        "T": "T", "N": "N", "M": "M",
+        "stage_grouping": "Classification",
+        "note": "Note",
+    }
+    key_order = ["T", "N", "M", "stage_grouping", "note"]
+
+    obj = value
+    # If it's a string, try to parse it as a dict
+    if isinstance(value, str):
+        parsed = _try_parse_dict(value)
+        if parsed:
+            obj = parsed
+        else:
+            return value if value else "N/A"
+
+    if isinstance(obj, dict):
+        parts: list[str] = []
+        rendered: set[str] = set()
+        for key in key_order:
+            v = obj.get(key)
+            if v:
+                label = labels.get(key, key)
+                parts.append(f"{label} : {v}")
+                rendered.add(key)
+        for k, v in obj.items():
+            if k not in rendered and v:
+                label = labels.get(k, k)
+                parts.append(f"{label} : {v}")
+        return "\n".join(parts) if parts else "N/A"
+    return str(value) if value else "N/A"
+
+
+def _format_evolution_value(value) -> str:
+    """Format an evolution sub-category value.
+    Handles nested dicts and string-encoded dicts."""
+    obj = value
+    # If it's a string, try to parse it as a dict
+    if isinstance(value, str):
+        parsed = _try_parse_dict(value)
+        if parsed:
+            obj = parsed
+        else:
+            return value if value else ""
+
+    if isinstance(obj, dict):
+        parts: list[str] = []
+        for lesion_name, details in obj.items():
+            name = lesion_name.replace('_', ' ').strip().capitalize()
+            if isinstance(details, dict):
+                desc = details.get("description", "")
+                evo = details.get("evolution", "")
+                comp = details.get("comparaison", "")
+                line_parts = [name]
+                if desc:
+                    line_parts.append(f": {desc}")
+                if evo:
+                    line_parts.append(f" ({evo})")
+                if comp:
+                    line_parts.append(f" — {comp}")
+                parts.append("".join(line_parts))
+            else:
+                parts.append(f"{name}: {details}")
+        return "\n".join(parts) if parts else ""
+    return str(value) if value else ""
+
+
 def _format_final_synthesis(value) -> str:
     """Format final_synthesis: if it's a dict with DR keys, render as labeled sentences.
     Hypothesis keys are explicitly excluded."""
@@ -108,9 +249,9 @@ def parse_report_response(raw: str, patient_id: str) -> ReportResponse:
     evo_raw = data.get("evolution", {})
     if isinstance(evo_raw, dict):
         evolution = EvolutionCategory(
-            pulmonary=str(evo_raw.get("pulmonary", "")),
-            nodes=str(evo_raw.get("nodes", "")),
-            metastasis_extra_pulmonary=str(evo_raw.get("metastasis_extra_pulmonary", "")),
+            pulmonary=_format_evolution_value(evo_raw.get("pulmonary", "")),
+            nodes=_format_evolution_value(evo_raw.get("nodes", "")),
+            metastasis_extra_pulmonary=_format_evolution_value(evo_raw.get("metastasis_extra_pulmonary", "")),
         )
     else:
         # Backwards compatibility: if LLM returns a plain string
@@ -140,47 +281,106 @@ def parse_report_response(raw: str, patient_id: str) -> ReportResponse:
         evolution=evolution,
         attention_points=attention_points,
         final_synthesis=_format_final_synthesis(data.get("final_synthesis", "")),
-        tnm_stage=str(data.get("tnm_stage", "")),
+        tnm_stage=_format_tnm_stage(data.get("tnm_stage", "")),
         segmentation_available=False,
         warnings=[],
     )
     return _postprocess_response_dates(response)
 
 
+def _clean_text(text: str) -> str:
+    """Apply date formatting, markdown stripping, and dict-string sanitization."""
+    result = _postprocess_dates(text)
+    result = _strip_markdown(result)
+    result = _sanitize_dict_string(result)
+    return result
+
+
 def _postprocess_response_dates(resp: ReportResponse) -> ReportResponse:
-    """Apply YYYYMMDD → YYYY-MM-DD post-processing to every text field in the response."""
-    resp.indication = _postprocess_dates(resp.indication)
-    resp.final_synthesis = _postprocess_dates(resp.final_synthesis)
-    resp.tnm_stage = _postprocess_dates(resp.tnm_stage)
+    """Apply YYYYMMDD → YYYY-MM-DD and markdown stripping to every text field."""
+    resp.indication = _clean_text(resp.indication)
+    resp.final_synthesis = _clean_text(resp.final_synthesis)
+    resp.tnm_stage = _clean_text(resp.tnm_stage)
 
     # Exam entries
     for exam in resp.exams:
         exam.date = _postprocess_dates(exam.date)
-        exam.exam_type = _postprocess_dates(exam.exam_type)
-        exam.modality = _postprocess_dates(exam.modality)
+        exam.exam_type = _clean_text(exam.exam_type)
+        exam.modality = _clean_text(exam.modality)
 
     # Lesion entries
     for lesion in resp.lesion_summary:
         lesion.date = _postprocess_dates(lesion.date)
-        lesion.observations = _postprocess_dates(lesion.observations)
+        lesion.anomaly = _clean_text(lesion.anomaly)
+        lesion.position = _clean_text(lesion.position)
+        lesion.size = _clean_text(lesion.size)
+        lesion.nature = _clean_text(lesion.nature)
+        lesion.observations = _clean_text(lesion.observations)
 
     # Evolution
-    resp.evolution.pulmonary = _postprocess_dates(resp.evolution.pulmonary)
-    resp.evolution.nodes = _postprocess_dates(resp.evolution.nodes)
-    resp.evolution.metastasis_extra_pulmonary = _postprocess_dates(
+    resp.evolution.pulmonary = _clean_text(resp.evolution.pulmonary)
+    resp.evolution.nodes = _clean_text(resp.evolution.nodes)
+    resp.evolution.metastasis_extra_pulmonary = _clean_text(
         resp.evolution.metastasis_extra_pulmonary
     )
 
     # Attention points (may be list of DiscordanceEntry or plain string)
     if isinstance(resp.attention_points, list):
         for a in resp.attention_points:
-            a.description = _postprocess_dates(a.description)
-            a.exam_source = _postprocess_dates(a.exam_source)
-            a.ct_reference = _postprocess_dates(a.ct_reference)
+            a.description = _clean_text(a.description)
+            a.exam_source = _clean_text(a.exam_source)
+            a.ct_reference = _clean_text(a.ct_reference)
     elif isinstance(resp.attention_points, str):
-        resp.attention_points = _postprocess_dates(resp.attention_points)
+        resp.attention_points = _clean_text(resp.attention_points)
 
     return resp
+
+
+def parse_patient_response(raw: str, patient_id: str) -> ReportResponse:
+    """Parse LLM JSON response for patient mode into a simplified ReportResponse."""
+    try:
+        cleaned = raw.strip()
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+        data = None
+        try:
+            data = json.loads(cleaned)
+        except json.JSONDecodeError:
+            match = re.search(r"\{[\s\S]*\}", cleaned)
+            if match:
+                try:
+                    data = json.loads(match.group())
+                except json.JSONDecodeError:
+                    pass
+
+        if data is None:
+            return ReportResponse(
+                patient_id=patient_id,
+                generation_date=datetime.now().isoformat(),
+                mode="patient",
+                patient_summary=_clean_text(raw),
+                warnings=["LLM response was not valid JSON. Raw text placed in patient summary."],
+            )
+
+        summary = str(data.get("patient_summary", ""))
+        summary = _clean_text(summary)
+
+        return ReportResponse(
+            patient_id=patient_id,
+            generation_date=datetime.now().isoformat(),
+            mode="patient",
+            patient_summary=summary,
+        )
+    except Exception as e:
+        # Defensive: never let parsing crash the server
+        return ReportResponse(
+            patient_id=patient_id,
+            generation_date=datetime.now().isoformat(),
+            mode="patient",
+            patient_summary=str(raw) if raw else "Error generating patient summary.",
+            warnings=[f"Patient response parsing error: {e}"],
+        )
 
 
 def _fallback_response(raw: str, patient_id: str) -> ReportResponse:

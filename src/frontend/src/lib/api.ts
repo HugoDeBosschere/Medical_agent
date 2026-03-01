@@ -26,9 +26,12 @@ export interface DiscordanceEntry {
   ct_reference: string;
 }
 
+export type ReportMode = "radiologist" | "patient";
+
 export interface ReportData {
   patient_id: string;
   generation_date: string;
+  mode: ReportMode;
   indication: string;
   exams: ExamEntry[];
   lesion_summary: LesionEntry[];
@@ -38,16 +41,18 @@ export interface ReportData {
   tnm_stage: string;
   segmentation_available: boolean;
   warnings: string[];
+  patient_summary: string;
 }
 
 export async function fetchReport(
   patientId: string,
-  language: string
+  language: string,
+  mode: ReportMode = "radiologist"
 ): Promise<ReportData> {
   const resp = await fetch("/api/report", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ patient_id: patientId, language }),
+    body: JSON.stringify({ patient_id: patientId, language, mode }),
   });
 
   if (!resp.ok) {

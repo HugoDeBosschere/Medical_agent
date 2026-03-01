@@ -16,7 +16,7 @@ _XLSX_PATH = _PROJECT_ROOT / "ExamensUnboxed.xlsx"
 _DATA_DIR = _PROJECT_ROOT / "data"
 
 
-async def generate_report(patient_id: str, language: str) -> ReportResponse:
+async def generate_report(patient_id: str, language: str, mode: str = "radiologist") -> ReportResponse:
     """Full pipeline: NPR + Segmentation (parallel) → LLM prompt → parse → ReportResponse."""
     loop = asyncio.get_event_loop()
     warnings: list[str] = []
@@ -38,14 +38,17 @@ async def generate_report(patient_id: str, language: str) -> ReportResponse:
 
     # Build prompt and call LLM
     from .prompt_builder import build_final_prompt
-    prompt = build_final_prompt(npr_text, seg_text, language)
+    prompt = build_final_prompt(npr_text, seg_text, language, mode=mode)
 
     from .llm_caller import call_llm
     raw_response = await loop.run_in_executor(_executor, call_llm, prompt)
 
-    # Parse response
-    from .response_parser import parse_report_response
-    parsed = parse_report_response(raw_response, patient_id)
+    # Parse response based on mode
+    from .response_parser import parse_report_response, parse_patient_response
+    if mode == "patient":
+        parsed = parse_patient_response(raw_response, patient_id)
+    else:
+        parsed = parse_report_response(raw_response, patient_id)
     parsed.warnings = warnings
     parsed.segmentation_available = bool(seg_text)
 

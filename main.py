@@ -1,5 +1,5 @@
 """
-Augmented Radiologist — Single-command launcher.
+Loumavia — Single-command launcher.
 
 Starts the FastAPI backend (port 8000) and the Vite frontend (port 8080),
 then opens the app in the default browser.
