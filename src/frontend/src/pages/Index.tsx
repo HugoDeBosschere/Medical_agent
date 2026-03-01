@@ -35,6 +35,7 @@ const Index = () => {
     setError(null);
     try {
       const data = await fetchReport(patientId, language, mode);
+      console.log("[DEBUG] generation_evaluation:", data.generation_evaluation?.substring(0, 200) ?? "EMPTY/UNDEFINED");
       const blob = data.mode === "patient"
         ? generatePatientReport(data, language)
         : generateReportFromData(data, language);
@@ -57,12 +58,12 @@ const Index = () => {
 
       <header className="relative z-10 w-full flex items-center justify-between px-6 py-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center glow-border">
-            <Activity className="h-5 w-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center glow-border overflow-hidden">
+            <img src="/Loumavia_Logo.png" alt="Loumavia Logo" className="w-full h-full object-contain p-1" />
           </div>
           <h1 className="text-xl tracking-tight">
-            <span className="font-light text-muted-foreground/70">Augmented</span>{" "}
-            <span className="font-bold text-gradient">Radiologist</span>
+            <span className="font-bold text-gradient">Louma</span>
+            <span className="font-light text-muted-foreground/70">via</span>
           </h1>
         </div>
 
@@ -138,8 +139,8 @@ const Index = () => {
           <div className="flex flex-col items-center gap-8 animate-slide-up">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold tracking-tight">
-                <span className="text-muted-foreground/60 font-light">Augmented</span>{" "}
-                <span className="text-gradient">Radiologist</span>
+                <span className="font-bold text-gradient">Louma</span>
+                <span className="text-muted-foreground/60 font-light">via</span>
               </h2>
               <p className="text-muted-foreground max-w-sm">
                 {strings.subtitle}

@@ -42,6 +42,7 @@ export interface ReportData {
   segmentation_available: boolean;
   warnings: string[];
   patient_summary: string;
+  generation_evaluation?: string;
 }
 
 export async function fetchReport(

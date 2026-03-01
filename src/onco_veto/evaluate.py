@@ -154,3 +154,24 @@ if __name__ == "__main__":
     #print(f"Réponse: {reponse_Rar}")
 
     print(evaluate_prompt(prompt, response, threshold))
+
+def evaluate_generation_with_judge(source_data: str, generated_report: str) -> str:
+    """
+    Evaluates the quality of the generated report using the LLM-as-a-Judge framework.
+    Uses the strict medical report auditor prompt.
+    """
+    from ..pipeline.llm_caller import call_llm
+
+    prompt = f"""You are a strict medical report auditor (LLM-as-a-Judge). You receive (1) cleaned clinical source data and (2) a generated structured report. Evaluate whether the report is accurate, complete, temporally coherent, and strictly supported by the source data. For each section (Global Indication, Exams Analyzed, Lesion Summary, Evolution, Attention/Discordance, Final Summary and TNM), verify that all statements are explicitly supported, that dates and modalities are correct and chronologically ordered, that lesion descriptions include exact locations, measurements, and associated dates, that nodal and metastatic findings are reported only when present, and that evolution claims (increase, decrease, stability, appearance, disappearance) are justified by measurements and timing. Ensure TNM is consistent with tumor size, nodal involvement, metastasis data, and exam chronology, and not assigned if data are insufficient. Penalize hallucinations, incorrect dates, altered measurements, missing critical oncologic information, logical or temporal inconsistencies, and unsupported TNM reasoning. Do not rewrite the report or add external knowledge. Output: section-by-section evaluation (Correct / Incomplete / Incorrect), list of errors, TNM validity (Valid / Not valid / Insufficient data), global score (0–100), and final verdict (PASS / FAIL). Be strict and evidence-based.
+
+--- SOURCE DATA ---
+{source_data}
+
+--- GENERATED REPORT ---
+{generated_report}
+"""
+    try:
+        response = call_llm(prompt)
+        return response
+    except Exception as e:
+        return f"Judge evaluation failed: {e}"

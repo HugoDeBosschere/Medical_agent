@@ -52,6 +52,22 @@ async def generate_report(patient_id: str, language: str, mode: str = "radiologi
     parsed.warnings = warnings
     parsed.segmentation_available = bool(seg_text)
 
+    # Evaluate the generated report with LLM-as-a-Judge
+    source_data = f"{npr_text}\n\n{seg_text}"
+    from ..onco_veto.evaluate import evaluate_generation_with_judge
+    try:
+        eval_result = await loop.run_in_executor(
+            _executor,
+            evaluate_generation_with_judge,
+            source_data,
+            raw_response
+        )
+        parsed.generation_evaluation = eval_result
+        print(f"[pipeline] Judge evaluation result (first 200 chars): {eval_result[:200] if eval_result else 'EMPTY'}")
+    except Exception as e:
+        print(f"[pipeline] Judge evaluation failed: {e}")
+        parsed.generation_evaluation = ""
+
     return parsed
 
 
