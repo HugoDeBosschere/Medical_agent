@@ -53,3 +53,4 @@ class ReportResponse(BaseModel):
     segmentation_available: bool = False
     warnings: list[str] = []
     patient_summary: str = ""
+    generation_evaluation: str = ""

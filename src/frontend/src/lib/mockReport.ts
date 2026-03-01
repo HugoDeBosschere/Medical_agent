@@ -55,6 +55,7 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     patientDisclaimer: "IMPORTANT NOTICE",
     patientDisclaimerText:
       "This summary is provided for informational purposes only. It is based on your medical imaging reports and is not a substitute for a consultation with your doctor. Please discuss these results with your healthcare provider for a complete understanding of your condition and next steps.",
+    generationScore: "GENERATION QUALITY SCORE",
   },
   fr: {
     title: "COMPTE RENDU RADIOLOGIQUE",
@@ -102,6 +103,7 @@ const translations: Record<ReportLanguage, Record<string, string>> = {
     patientDisclaimer: "AVIS IMPORTANT",
     patientDisclaimerText:
       "Ce resume est fourni a titre informatif uniquement. Il est base sur vos comptes rendus d'imagerie medicale et ne remplace pas une consultation avec votre medecin. Veuillez discuter de ces resultats avec votre professionnel de sante pour une comprehension complete de votre situation et des prochaines etapes.",
+    generationScore: "SCORE DE QUALITE DE GENERATION",
   },
 };
 
@@ -503,6 +505,132 @@ function addFormattedTNM(doc: jsPDF, text: string, y: number, lang: ReportLangua
   return addWrappedText(doc, s, y);
 }
 
+/** Compute a red→yellow→green color from a 0–100 score. */
+function scoreToColor(score: number): [number, number, number] {
+  const s = Math.max(0, Math.min(100, score));
+  // 0 = red (220,53,69) → 50 = yellow (255,193,7) → 100 = green (40,167,69)
+  if (s <= 50) {
+    const t = s / 50;
+    return [
+      Math.round(220 + (255 - 220) * t),
+      Math.round(53 + (193 - 53) * t),
+      Math.round(69 + (7 - 69) * t),
+    ];
+  }
+  const t2 = (s - 50) / 50;
+  return [
+    Math.round(255 + (40 - 255) * t2),
+    Math.round(193 + (167 - 193) * t2),
+    Math.round(7 + (69 - 7) * t2),
+  ];
+}
+
+/** Parse the judge free-form text and render a colored score badge section. */
+function addGenerationScoreBadge(
+  doc: jsPDF,
+  evaluationText: string,
+  y: number,
+  lang: ReportLanguage
+): number {
+  if (!evaluationText) return y;
+
+  // Debug: log what we received from the backend
+  console.log("[LLM-as-Judge] generation_evaluation received:", evaluationText.substring(0, 300));
+
+  // Extract global score (0-100) — handle many LLM output formats:
+  // "Global Score: 75", "**Global Score:** 75/100", "Score global : 75",
+  // "global score (0–100): 75", "Score: 75/100", or just a bare "75/100" near "score"
+  const scorePatterns = [
+    /(?:global\s*score|score\s*global)[^0-9]*(\d{1,3})/i,
+    /(?:\*\*)?(?:global\s*score|score\s*global)(?:\*\*)?[^0-9]*(\d{1,3})/i,
+    /score[^0-9]*(\d{1,3})\s*(?:\/\s*100|%)/i,
+    /(\d{1,3})\s*\/\s*100/,
+  ];
+  let score: number | null = null;
+  for (const pat of scorePatterns) {
+    const m = evaluationText.match(pat);
+    if (m) {
+      const val = parseInt(m[1], 10);
+      if (val >= 0 && val <= 100) {
+        score = val;
+        break;
+      }
+    }
+  }
+  if (score === null) {
+    console.log("[LLM-as-Judge] Could not extract score from evaluation text");
+    return y;
+  }
+
+  // Extract verdict — handle "PASS", "FAIL", "**PASS**", "Verdict: PASS", etc.
+  const verdictMatch = evaluationText.match(/(?:final\s*)?verdict[^A-Z]*(PASS|FAIL)/i)
+    ?? evaluationText.match(/\b(PASS|FAIL)\b/);
+  const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : "";
+
+  // Extract a short explanation — look for "errors" or take a brief summary
+  let explanation = "";
+  // Try to grab a line after "list of errors" or similar
+  const errorsMatch = evaluationText.match(
+    /(?:errors?|issues?|findings?)[:\s]*\n?[-•*]?\s*(.+?)(?:\n|$)/i
+  );
+  if (errorsMatch) {
+    explanation = errorsMatch[1].trim();
+  }
+  // Fallback: take the last sentence-like chunk before the score line
+  if (!explanation) {
+    const lines = evaluationText.split("\n").filter((l) => l.trim());
+    for (const line of lines) {
+      if (line.length > 10 && !line.match(/score/i) && !line.match(/verdict/i)) {
+        explanation = line.trim();
+      }
+    }
+  }
+  // Truncate to ~120 chars
+  if (explanation.length > 120) {
+    explanation = explanation.substring(0, 117) + "...";
+  }
+
+  // Render section
+  y += 4;
+  y = checkPage(doc, y, 40);
+  y = addSection(doc, t(lang, "generationScore"), y);
+
+  // Draw colored badge (rounded rect)
+  const [r, g, b] = scoreToColor(score);
+  const badgeText = verdict ? `${score}/100 — ${verdict}` : `${score}/100`;
+  doc.setFontSize(10);
+  const badgeWidth = doc.getTextWidth(badgeText) + 12;
+  const badgeHeight = 8;
+  const badgeX = 22;
+  const badgeY = y - 5.5;
+
+  doc.setFillColor(r, g, b);
+  doc.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(badgeText, badgeX + 6, y);
+  y += 10;
+
+  // Explanation text
+  if (explanation) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    const expLines = doc.splitTextToSize(stripMarkdown(explanation), 165);
+    for (const line of expLines) {
+      y = checkPage(doc, y, 6);
+      doc.text(line, 22, y);
+      y += 4;
+    }
+    y += 2;
+  }
+
+  // Reset text color
+  doc.setTextColor(30, 41, 59);
+  return y;
+}
+
 export function generateReportFromData(
   data: ReportData,
   lang: ReportLanguage = "en"
@@ -682,6 +810,11 @@ export function generateReportFromData(
     doc.setTextColor(30, 41, 59);
   }
 
+  // Generation Quality Score badge
+  if (data.generation_evaluation) {
+    y = addGenerationScoreBadge(doc, data.generation_evaluation, y, lang);
+  }
+
   // Footer
   y += 6;
   y = checkPage(doc, y, 40);
@@ -773,6 +906,11 @@ export function generatePatientReport(
     y = checkPage(doc, y, 8);
     doc.text(line, 22, y);
     y += 5;
+  }
+
+  // Generation Quality Score badge
+  if (data.generation_evaluation) {
+    y = addGenerationScoreBadge(doc, data.generation_evaluation, y, lang);
   }
 
   // Footer: RGPD
