@@ -79,9 +79,15 @@ def run_npr_stream(patient_id: str) -> str:
     # Concatenate all cleaned reports
     parts = []
     for _, row in df_clean.iterrows():
-        accession = row.get("AccessionNumber", "unknown")
+        study_date = row.get("StudyDate", row.get("AccessionNumber", "unknown"))
+        # Format date if it's a Timestamp / datetime
+        if hasattr(study_date, "strftime"):
+            study_date = study_date.strftime("%Y-%m-%d")
+        # Format YYYYMMDD string dates to YYYY-MM-DD
+        elif isinstance(study_date, str) and len(study_date) == 8 and study_date.isdigit():
+            study_date = f"{study_date[:4]}-{study_date[4:6]}-{study_date[6:8]}"
         report_text = str(row[REPORT_COLUMN])
-        parts.append(f"[AccessionNumber: {accession}]\n{report_text}")
+        parts.append(f"[ExamDate: {study_date}]\n{report_text}")
 
     return "\n\n---\n\n".join(parts)
 

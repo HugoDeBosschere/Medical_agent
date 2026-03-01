@@ -8,13 +8,32 @@ class ReportRequest(BaseModel):
 
 class LesionEntry(BaseModel):
     date: str
-    description: str
+    modality: str = ""
+    injected: str = ""
+    anomaly: str = ""
+    position: str = ""
+    size: str = ""
+    nature: str = ""
+    observations: str = ""
 
 
 class ExamEntry(BaseModel):
     date: str
     exam_type: str
-    accession_number: str = ""
+    modality: str = ""
+    injected: str = ""
+
+
+class DiscordanceEntry(BaseModel):
+    description: str
+    exam_source: str = ""
+    ct_reference: str = ""
+
+
+class EvolutionCategory(BaseModel):
+    pulmonary: str = ""
+    nodes: str = ""
+    metastasis_extra_pulmonary: str = ""
 
 
 class ReportResponse(BaseModel):
@@ -23,8 +42,8 @@ class ReportResponse(BaseModel):
     indication: str
     exams: list[ExamEntry]
     lesion_summary: list[LesionEntry]
-    evolution: str
-    attention_points: str
+    evolution: EvolutionCategory
+    attention_points: list[DiscordanceEntry] | str = ""
     final_synthesis: str
     tnm_stage: str
     segmentation_available: bool

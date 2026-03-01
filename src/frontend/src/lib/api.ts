@@ -1,12 +1,29 @@
 export interface LesionEntry {
   date: string;
-  description: string;
+  modality: string;
+  injected: string;
+  anomaly: string;
+  position: string;
+  size: string;
+  nature: string;
+  observations: string;
 }
 
 export interface ExamEntry {
   date: string;
   exam_type: string;
-  accession_number: string;
+}
+
+export interface EvolutionCategory {
+  pulmonary: string;
+  nodes: string;
+  metastasis_extra_pulmonary: string;
+}
+
+export interface DiscordanceEntry {
+  description: string;
+  exam_source: string;
+  ct_reference: string;
 }
 
 export interface ReportData {
@@ -15,8 +32,8 @@ export interface ReportData {
   indication: string;
   exams: ExamEntry[];
   lesion_summary: LesionEntry[];
-  evolution: string;
-  attention_points: string;
+  evolution: EvolutionCategory;
+  attention_points: DiscordanceEntry[] | string;
   final_synthesis: string;
   tnm_stage: string;
   segmentation_available: boolean;
