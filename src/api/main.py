@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .schemas import ReportRequest, ReportResponse
 
-app = FastAPI(title="Augmented Radiologist API")
+app = FastAPI(title="Loumavia API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,7 +18,7 @@ async def create_report(req: ReportRequest):
     from ..pipeline.orchestrator import generate_report
 
     try:
-        result = await generate_report(req.patient_id, req.language)
+        result = await generate_report(req.patient_id, req.language, req.mode)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

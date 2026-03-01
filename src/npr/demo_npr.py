@@ -25,6 +25,7 @@ try:
     print("\nExcel Key file found.")
 except:
     pass
+
 XLSX_PASSWORD = excel_key # set the password for the encrypted xlsx here
 DEMO_PID = "0301B7D6"  # first patient in the spreadsheet
 OUTPUT_PATH = Path(__file__).resolve().parent / "demo_clean.xlsx"

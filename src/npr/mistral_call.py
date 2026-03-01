@@ -3,7 +3,7 @@ import requests
 from pathlib import Path
 
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
-MISTRAL_DEFAULT_MODEL = "mistral-small-latest"
+MISTRAL_DEFAULT_MODEL = "mistral-large-latest"
 
 PATH_API_KEY = Path(__file__).parent / "api_key.txt"
 
@@ -44,7 +44,13 @@ def call_mistral_generate(prompt: str, model: str = MISTRAL_DEFAULT_MODEL) -> st
     }
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+            # It's best practice to tell the model how to behave
+            {"role": "system", "content": "You are a helpful assistant that outputs only valid JSON."},
+            {"role": "user", "content": prompt}
+        ],
+        # This is the specific argument you were looking for
+        "response_format": {"type": "json_object"}
     }
 
     print(f"[mistral] Sending prompt to model '{model}' ({len(prompt)} chars) ...")

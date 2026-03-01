@@ -16,7 +16,7 @@ _XLSX_PATH = _PROJECT_ROOT / "ExamensUnboxed.xlsx"
 _DATA_DIR = _PROJECT_ROOT / "data"
 
 
-async def generate_report(patient_id: str, language: str) -> ReportResponse:
+async def generate_report(patient_id: str, language: str, mode: str = "radiologist") -> ReportResponse:
     """Full pipeline: NPR + Segmentation (parallel) → LLM prompt → parse → ReportResponse."""
     loop = asyncio.get_event_loop()
     warnings: list[str] = []
@@ -38,14 +38,17 @@ async def generate_report(patient_id: str, language: str) -> ReportResponse:
 
     # Build prompt and call LLM
     from .prompt_builder import build_final_prompt
-    prompt = build_final_prompt(npr_text, seg_text, language)
+    prompt = build_final_prompt(npr_text, seg_text, language, mode=mode)
 
     from .llm_caller import call_llm
     raw_response = await loop.run_in_executor(_executor, call_llm, prompt)
 
-    # Parse response
-    from .response_parser import parse_report_response
-    parsed = parse_report_response(raw_response, patient_id)
+    # Parse response based on mode
+    from .response_parser import parse_report_response, parse_patient_response
+    if mode == "patient":
+        parsed = parse_patient_response(raw_response, patient_id)
+    else:
+        parsed = parse_report_response(raw_response, patient_id)
     parsed.warnings = warnings
     parsed.segmentation_available = bool(seg_text)
 
@@ -79,9 +82,15 @@ def run_npr_stream(patient_id: str) -> str:
     # Concatenate all cleaned reports
     parts = []
     for _, row in df_clean.iterrows():
-        accession = row.get("AccessionNumber", "unknown")
+        study_date = row.get("StudyDate", row.get("AccessionNumber", "unknown"))
+        # Format date if it's a Timestamp / datetime
+        if hasattr(study_date, "strftime"):
+            study_date = study_date.strftime("%Y-%m-%d")
+        # Format YYYYMMDD string dates to YYYY-MM-DD
+        elif isinstance(study_date, str) and len(study_date) == 8 and study_date.isdigit():
+            study_date = f"{study_date[:4]}-{study_date[4:6]}-{study_date[6:8]}"
         report_text = str(row[REPORT_COLUMN])
-        parts.append(f"[AccessionNumber: {accession}]\n{report_text}")
+        parts.append(f"[ExamDate: {study_date}]\n{report_text}")
 
     return "\n\n---\n\n".join(parts)
 

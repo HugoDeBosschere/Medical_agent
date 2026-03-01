@@ -1,11 +1,12 @@
-import { useState, useCallback } from "react";
-import { Activity, Globe, Volume2, VolumeX } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Activity, Globe, Stethoscope, User, Volume2, VolumeX } from "lucide-react";
 import PatientIdInput from "@/components/PatientIdInput";
 import ReportViewer from "@/components/ReportViewer";
 import EcgAnimation from "@/components/EcgAnimation";
 import TumorGame from "@/components/TumorGame";
-import { generateReportFromData, LANGUAGE_LABELS, type ReportLanguage } from "@/lib/mockReport";
-import { fetchReport } from "@/lib/api";
+import { generateReportFromData, generatePatientReport, LANGUAGE_LABELS, type ReportLanguage } from "@/lib/mockReport";
+import { fetchReport, type ReportMode } from "@/lib/api";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -14,9 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const UI_STRINGS: Record<ReportLanguage, { subtitle: string; footer: string }> = {
-  en: { subtitle: "Enter a valid patient identifier to retrieve and preview the diagnostic report.", footer: "The Augmented Radiologist · For authorized medical personnel only" },
-  fr: { subtitle: "Entrez un identifiant patient valide pour récupérer et prévisualiser le compte rendu.", footer: "The Augmented Radiologist · Réservé au personnel médical autorisé" },
+const UI_STRINGS: Record<ReportLanguage, { subtitle: string; footer: string; radiologistLabel: string; patientLabel: string }> = {
+  en: { subtitle: "Enter a valid patient identifier to retrieve and preview the diagnostic report.", footer: "The Loumavia · For authorized medical personnel only", radiologistLabel: "Radiologist", patientLabel: "Patient" },
+  fr: { subtitle: "Entrez un identifiant patient valide pour récupérer et prévisualiser le compte rendu.", footer: "The Loumavia · Réservé au personnel médical autorisé", radiologistLabel: "Radiologue", patientLabel: "Patient" },
 };
 
 const Index = () => {
@@ -24,6 +25,7 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<ReportLanguage>("fr");
+  const [mode, setMode] = useState<ReportMode>("radiologist");
   const [musicOn, setMusicOn] = useState(false);
 
   const strings = UI_STRINGS[language];
@@ -32,8 +34,10 @@ const Index = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchReport(patientId, language);
-      const blob = generateReportFromData(data, language);
+      const data = await fetchReport(patientId, language, mode);
+      const blob = data.mode === "patient"
+        ? generatePatientReport(data, language)
+        : generateReportFromData(data, language);
       setReport({ blob, patientId });
     } catch (err) {
       console.error("API error:", err);
@@ -41,7 +45,11 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
-  }, [language]);
+  }, [language, mode]);
+
+  useEffect(() => {
+    setReport(null);
+  }, [mode]);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center bg-background overflow-hidden">
@@ -71,6 +79,32 @@ const Index = () => {
           >
             {musicOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
+
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(v) => { if (v) setMode(v as ReportMode); }}
+            variant="outline"
+            size="sm"
+            className="border border-border/50 rounded-lg bg-card/50 backdrop-blur-sm p-0.5"
+          >
+            <ToggleGroupItem
+              value="radiologist"
+              aria-label={strings.radiologistLabel}
+              className="flex items-center gap-1.5 px-3 text-xs data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            >
+              <Stethoscope className="h-3.5 w-3.5" />
+              {strings.radiologistLabel}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="patient"
+              aria-label={strings.patientLabel}
+              className="flex items-center gap-1.5 px-3 text-xs data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            >
+              <User className="h-3.5 w-3.5" />
+              {strings.patientLabel}
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           <Globe className="h-4 w-4 text-muted-foreground" />
           <Select value={language} onValueChange={(v) => setLanguage(v as ReportLanguage)}>
